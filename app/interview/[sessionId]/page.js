@@ -1,11 +1,13 @@
 'use client'
 import { useState, useRef, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { Play, Square, ArrowRight, CheckCircle, Camera, Clock, User, Mail, Phone, Building } from 'lucide-react'
+import { useParams, useRouter } from 'next/navigation'
+import { FaPlay, FaSquare, FaArrowRight, FaCheckCircle, FaCamera, FaClock, FaUser, FaEnvelope, FaPhone, FaBuilding } from 'react-icons/fa'
 
 export default function InterviewPage() {
   const router = useRouter()
-  const { sessionId } = router.query
+  const params = useParams()
+  /** @type {string} */
+  const sessionId = params.sessionId  // ← CHANGED: Use params instead of router.query
   const videoRef = useRef(null)
   
   const [interview, setInterview] = useState(null)
@@ -264,7 +266,7 @@ export default function InterviewPage() {
             <div className="interview-card p-8 glass-effect">
               <div className="text-center mb-8">
                 <div className="p-4 bg-primary rounded-2xl w-fit mx-auto mb-4">
-                  <Building className="text-primary-foreground" size={32} />
+                  <FaBuilding className="text-primary-foreground" size={32} />
                 </div>
                 <h1 className="text-3xl font-bold text-foreground mb-2">
                   {interview.job_title}
@@ -287,7 +289,7 @@ export default function InterviewPage() {
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <label className="text-sm font-semibold text-foreground flex items-center">
-                      <User size={16} className="mr-2" />
+                      <FaUser size={16} className="mr-2" />
                       Full Name *
                     </label>
                     <input
@@ -301,7 +303,7 @@ export default function InterviewPage() {
 
                   <div className="space-y-2">
                     <label className="text-sm font-semibold text-foreground flex items-center">
-                      <Mail size={16} className="mr-2" />
+                      <FaEnvelope size={16} className="mr-2" />
                       Email Address *
                     </label>
                     <input
@@ -315,7 +317,7 @@ export default function InterviewPage() {
 
                   <div className="space-y-2">
                     <label className="text-sm font-semibold text-foreground flex items-center">
-                      <Phone size={16} className="mr-2" />
+                      <FaPhone size={16} className="mr-2" />
                       Phone Number (Optional)
                     </label>
                     <input
@@ -361,7 +363,7 @@ export default function InterviewPage() {
           <div className="max-w-2xl mx-auto">
             <div className="interview-card p-8 glass-effect text-center">
               <div className="p-4 bg-green-500 rounded-2xl w-fit mx-auto mb-6">
-                <CheckCircle className="text-white" size={48} />
+                <FaCheckCircle className="text-white" size={48} />
               </div>
               
               <h1 className="text-3xl font-bold text-foreground mb-4">
@@ -417,7 +419,7 @@ export default function InterviewPage() {
               <div className="flex items-center space-x-4">
                 {isActive && (
                   <div className="flex items-center space-x-2 px-4 py-2 bg-red-100 rounded-lg">
-                    <Clock className="text-red-600" size={16} />
+                    <FaClock className="text-red-600" size={16} />
                     <span className="font-mono text-red-600 font-semibold">
                       {formatTime(timer)}
                     </span>
@@ -482,7 +484,7 @@ export default function InterviewPage() {
                 {!stream && (
                   <div className="absolute inset-0 flex items-center justify-center bg-black/50">
                     <div className="text-center text-white">
-                      <Camera size={48} className="mx-auto mb-4 opacity-50" />
+                      <FaCamera size={48} className="mx-auto mb-4 opacity-50" />
                       <p>Camera not initialized</p>
                     </div>
                   </div>
@@ -497,7 +499,7 @@ export default function InterviewPage() {
                   onClick={initializeCamera}
                   className="inline-flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transform hover:scale-105 transition-all duration-200"
                 >
-                  <Camera className="mr-2" size={18} />
+                  <FaCamera className="mr-2" size={18} />
                   Enable Camera
                 </button>
               )}
@@ -507,7 +509,7 @@ export default function InterviewPage() {
                   onClick={startRecording}
                   className="inline-flex items-center px-8 py-4 bg-red-600 text-white rounded-xl font-semibold text-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
                 >
-                  <Play className="mr-3" size={20} />
+                  <FaPlay className="mr-3" size={20} />
                   Start Recording
                 </button>
               )}
@@ -517,7 +519,7 @@ export default function InterviewPage() {
                   onClick={stopRecording}
                   className="inline-flex items-center px-8 py-4 bg-gray-600 text-white rounded-xl font-semibold text-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
                 >
-                  <Square className="mr-3" size={20} />
+                  <FaSquare className="mr-3" size={20} />
                   Stop Recording
                 </button>
               )}
@@ -528,7 +530,7 @@ export default function InterviewPage() {
                   className="inline-flex items-center px-8 py-4 bg-green-600 text-white rounded-xl font-semibold text-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
                 >
                   {currentQuestion === interview.questions.length - 1 ? 'Complete Interview' : 'Next Question'}
-                  <ArrowRight className="ml-3" size={20} />
+                  <FaArrowRight className="ml-3" size={20} />
                 </button>
               )}
             </div>
@@ -537,7 +539,7 @@ export default function InterviewPage() {
             {responses[currentQuestion] && (
               <div className="mt-8 p-4 bg-green-50 border border-green-200 rounded-lg animate-fade-in">
                 <div className="flex items-center text-green-700">
-                  <CheckCircle className="mr-3" size={20} />
+                  <FaCheckCircle className="mr-3" size={20} />
                   <div>
                     <span className="font-semibold">Response recorded successfully!</span>
                     <p className="text-sm text-green-600 mt-1">

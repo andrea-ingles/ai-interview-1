@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { FileText, User, Brain, Video, MessageSquare, CheckCircle, XCircle, Clock, ArrowLeft, Download, Eye } from 'lucide-react'
+import { FaFileAlt, FaUser, FaBrain, FaVideo, FaComment, FaCheckCircle, FaTimesCircle, FaClock, FaArrowLeft, FaDownload, FaEye } from 'react-icons/fa'
 import { useRouter } from 'next/navigation'
 
 export default function AdminResults() {
@@ -37,10 +37,10 @@ export default function AdminResults() {
 
   const getRecommendationIcon = (recommendation) => {
     switch (recommendation?.toLowerCase()) {
-      case 'hire': return <CheckCircle size={16} />
-      case 'maybe': return <Clock size={16} />
-      case 'pass': return <XCircle size={16} />
-      default: return <Clock size={16} />
+      case 'hire': return <FaCheckCircle size={16} />
+      case 'maybe': return <FaClock size={16} />
+      case 'pass': return <FaTimesCircle size={16} />
+      default: return <FaClock size={16} />
     }
   }
 
@@ -81,7 +81,7 @@ export default function AdminResults() {
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
                 <div className="p-4 bg-primary rounded-2xl shadow-lg">
-                  <Brain className="text-primary-foreground" size={32} />
+                  <FaBrain className="text-primary-foreground" size={32} />
                 </div>
                 <div>
                   <h1 className="text-4xl font-bold text-foreground">Interview Results</h1>
@@ -94,7 +94,7 @@ export default function AdminResults() {
                 onClick={() => router.push('/admin')}
                 className="inline-flex items-center px-6 py-3 bg-secondary text-secondary-foreground rounded-lg font-medium hover:bg-secondary/80 transition-colors"
               >
-                <ArrowLeft className="mr-2" size={18} />
+                <FaArrowLeft className="mr-2" size={18} />
                 Back to Setup
               </button>
             </div>
@@ -103,7 +103,7 @@ export default function AdminResults() {
           {interviews.length === 0 ? (
             <div className="interview-card p-12 glass-effect text-center">
               <div className="p-6 bg-muted rounded-full w-fit mx-auto mb-6">
-                <FileText className="text-muted-foreground" size={48} />
+                <FaFileAlt className="text-muted-foreground" size={48} />
               </div>
               <h2 className="text-3xl font-bold text-foreground mb-4">No Interviews Found</h2>
               <p className="text-muted-foreground text-lg mb-8">
@@ -129,11 +129,11 @@ export default function AdminResults() {
                         </h2>
                         <div className="flex items-center space-x-6 text-primary-foreground/90">
                           <div className="flex items-center space-x-2">
-                            <User size={16} />
+                            <FaUser size={16} />
                             <span>{interview.totalCandidates} candidates</span>
                           </div>
                           <div className="flex items-center space-x-2">
-                            <CheckCircle size={16} />
+                            <FaCheckCircle size={16} />
                             <span>{interview.completedCandidates} completed</span>
                           </div>
                         </div>
@@ -148,7 +148,7 @@ export default function AdminResults() {
                   <div className="p-6">
                     {interview.candidates?.length === 0 ? (
                       <div className="text-center py-12">
-                        <Clock className="text-muted-foreground mx-auto mb-4" size={48} />
+                        <FaClock className="text-muted-foreground mx-auto mb-4" size={48} />
                         <p className="text-muted-foreground text-lg">
                           No candidates have completed this interview yet
                         </p>
@@ -165,7 +165,7 @@ export default function AdminResults() {
                               <div className="flex items-center justify-between">
                                 <div className="flex items-center space-x-4">
                                   <div className="p-3 bg-primary rounded-full">
-                                    <User className="text-primary-foreground" size={20} />
+                                    <FaUser className="text-primary-foreground" size={20} />
                                   </div>
                                   <div>
                                     <h3 className="text-xl font-semibold text-foreground">
@@ -187,19 +187,19 @@ export default function AdminResults() {
                                     <div className="flex items-center space-x-2">
                                       {candidate.responses.some(r => r.ai_analysis?.recommendation === 'hire') && (
                                         <span className="status-badge-success">
-                                          <CheckCircle size={12} className="mr-1" />
+                                          <FaCheckCircle size={12} className="mr-1" />
                                           Recommended
                                         </span>
                                       )}
                                       {candidate.responses.some(r => r.video_url) && (
                                         <span className="status-badge-info">
-                                          <Video size={12} className="mr-1" />
+                                          <FaVideo size={12} className="mr-1" />
                                           Video
                                         </span>
                                       )}
                                       {candidate.responses.some(r => r.ai_analysis) && (
                                         <span className="status-badge-warning">
-                                          <Brain size={12} className="mr-1" />
+                                          <FaBrain size={12} className="mr-1" />
                                           Analyzed
                                         </span>
                                       )}
@@ -207,7 +207,7 @@ export default function AdminResults() {
                                   )}
                                   
                                   <button className="p-2 hover:bg-background rounded-lg transition-colors">
-                                    <Eye size={16} className="text-muted-foreground" />
+                                    <FaEye size={16} className="text-muted-foreground" />
                                   </button>
                                 </div>
                               </div>
@@ -218,7 +218,7 @@ export default function AdminResults() {
                               <div className="p-6 border-t bg-background">
                                 {candidate.responses?.length === 0 ? (
                                   <div className="text-center py-8">
-                                    <MessageSquare className="text-muted-foreground mx-auto mb-4" size={32} />
+                                    <FaComment className="text-muted-foreground mx-auto mb-4" size={32} />
                                     <p className="text-muted-foreground">No responses yet</p>
                                   </div>
                                 ) : (
@@ -239,19 +239,19 @@ export default function AdminResults() {
                                           <div className="flex items-center space-x-2">
                                             {response.video_url && (
                                               <span className="status-badge-info">
-                                                <Video size={12} className="mr-1" />
+                                                <FaVideo size={12} className="mr-1" />
                                                 Video
                                               </span>
                                             )}
                                             {response.transcription && (
                                               <span className="status-badge-success">
-                                                <MessageSquare size={12} className="mr-1" />
+                                                <FaComment size={12} className="mr-1" />
                                                 Transcribed
                                               </span>
                                             )}
                                             {response.ai_analysis && (
                                               <span className="status-badge-warning">
-                                                <Brain size={12} className="mr-1" />
+                                                <FaBrain size={12} className="mr-1" />
                                                 Analyzed
                                               </span>
                                             )}
@@ -363,11 +363,11 @@ export default function AdminResults() {
                                               </span>
                                               <div className="flex items-center space-x-2">
                                                 <button className="inline-flex items-center px-3 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors">
-                                                  <Eye size={14} className="mr-1" />
+                                                  <FaEye size={14} className="mr-1" />
                                                   View Video
                                                 </button>
                                                 <button className="inline-flex items-center px-3 py-2 bg-secondary text-secondary-foreground rounded-lg text-sm font-medium hover:bg-secondary/80 transition-colors">
-                                                  <Download size={14} className="mr-1" />
+                                                  <FaDownload size={14} className="mr-1" />
                                                   Download
                                                 </button>
                                               </div>

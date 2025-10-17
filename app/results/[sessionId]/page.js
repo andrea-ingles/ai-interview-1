@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Video, MessageSquare, FileText, Clock, CheckCircle, User, Brain } from 'lucide-react'
+import { FaArrowLeft, FaVideo, FaComment, FaFileAlt, FaClock, FaCheckCircle, FaUser, FaBrain } from 'react-icons/fa'
 
 export default function ResultsDetailPage() {
   const router = useRouter()
@@ -72,7 +72,7 @@ export default function ResultsDetailPage() {
                 onClick={() => router.push('/results')}
                 className="inline-flex items-center px-4 py-2 bg-secondary text-secondary-foreground rounded-lg font-medium hover:bg-secondary/80 transition-colors"
               >
-                <ArrowLeft className="mr-2" size={16} />
+                <FaArrowLeft className="mr-2" size={16} />
                 Back to Results
               </button>
               
@@ -96,7 +96,7 @@ export default function ResultsDetailPage() {
             <div className="interview-card p-6 glass-effect">
               <div className="flex items-center mb-4">
                 <div className="p-3 bg-blue-100 rounded-lg">
-                  <Video className="text-blue-600" size={24} />
+                  <FaVideo className="text-blue-600" size={24} />
                 </div>
                 <div className="ml-4">
                   <h3 className="font-semibold text-foreground">Interview</h3>
@@ -108,7 +108,7 @@ export default function ResultsDetailPage() {
             <div className="interview-card p-6 glass-effect">
               <div className="flex items-center mb-4">
                 <div className="p-3 bg-green-100 rounded-lg">
-                  <MessageSquare className="text-green-600" size={24} />
+                  <FaComment className="text-green-600" size={24} />
                 </div>
                 <div className="ml-4">
                   <h3 className="font-semibold text-foreground">Status</h3>
@@ -120,7 +120,7 @@ export default function ResultsDetailPage() {
             <div className="interview-card p-6 glass-effect">
               <div className="flex items-center mb-4">
                 <div className="p-3 bg-purple-100 rounded-lg">
-                  <FileText className="text-purple-600" size={24} />
+                  <FaFileAlt className="text-purple-600" size={24} />
                 </div>
                 <div className="ml-4">
                   <h3 className="font-semibold text-foreground">Analysis</h3>
@@ -133,7 +133,7 @@ export default function ResultsDetailPage() {
           {/* Coming Soon Section */}
           <div className="interview-card p-12 glass-effect text-center">
             <div className="p-6 bg-muted rounded-full w-fit mx-auto mb-6">
-              <Brain className="text-muted-foreground" size={48} />
+              <FaBrain className="text-muted-foreground" size={48} />
             </div>
             
             <h2 className="text-2xl font-bold text-foreground mb-4">
@@ -148,7 +148,7 @@ export default function ResultsDetailPage() {
             <div className="grid md:grid-cols-2 gap-6 max-w-2xl mx-auto mb-8">
               <div className="p-4 bg-muted/30 rounded-lg border">
                 <div className="flex items-center mb-2">
-                  <Video size={20} className="text-primary mr-2" />
+                  <FaVideo size={20} className="text-primary mr-2" />
                   <span className="font-semibold text-foreground">Video Analysis</span>
                 </div>
                 <p className="text-sm text-muted-foreground">
@@ -158,7 +158,7 @@ export default function ResultsDetailPage() {
               
               <div className="p-4 bg-muted/30 rounded-lg border">
                 <div className="flex items-center mb-2">
-                  <MessageSquare size={20} className="text-primary mr-2" />
+                  <FaComment size={20} className="text-primary mr-2" />
                   <span className="font-semibold text-foreground">Transcriptions</span>
                 </div>
                 <p className="text-sm text-muted-foreground">
@@ -168,7 +168,7 @@ export default function ResultsDetailPage() {
               
               <div className="p-4 bg-muted/30 rounded-lg border">
                 <div className="flex items-center mb-2">
-                  <Brain size={20} className="text-primary mr-2" />
+                  <FaBrain size={20} className="text-primary mr-2" />
                   <span className="font-semibold text-foreground">AI Scoring</span>
                 </div>
                 <p className="text-sm text-muted-foreground">
@@ -178,7 +178,7 @@ export default function ResultsDetailPage() {
               
               <div className="p-4 bg-muted/30 rounded-lg border">
                 <div className="flex items-center mb-2">
-                  <User size={20} className="text-primary mr-2" />
+                  <FaUser size={20} className="text-primary mr-2" />
                   <span className="font-semibold text-foreground">Candidate Profiles</span>
                 </div>
                 <p className="text-sm text-muted-foreground">

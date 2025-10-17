@@ -1,7 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Settings, Send, Camera, Plus, X, AlertTriangle, CheckCircle } from 'lucide-react'
+import { FaCog, FaPaperPlane, FaCamera, FaPlus, FaTimesCircle, FaExclamationTriangle, FaCheckCircle } from 'react-icons/fa'
 
 export default function AdminPage() {
   const router = useRouter()
@@ -107,7 +107,7 @@ export default function AdminPage() {
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
                 <div className="p-4 bg-primary rounded-2xl shadow-lg">
-                  <Settings className="text-primary-foreground" size={32} />
+                  <FaCog className="text-primary-foreground" size={32} />
                 </div>
                 <div>
                   <h1 className="text-4xl font-bold text-foreground">AI Interview Setup</h1>
@@ -124,7 +124,7 @@ export default function AdminPage() {
           {showSuccess && (
             <div className="interview-card p-6 mb-8 bg-green-50 border-green-200 animate-fade-in">
               <div className="flex items-start space-x-3">
-                <CheckCircle className="text-green-600 mt-0.5" size={20} />
+                <FaCheckCircle className="text-green-600 mt-0.5" size={20} />
                 <div className="flex-1">
                   <h3 className="text-lg font-semibold text-green-800">Interview Created Successfully!</h3>
                   <p className="text-green-700 mt-1">Link copied to clipboard</p>
@@ -207,7 +207,7 @@ export default function AdminPage() {
                   onClick={addQuestion}
                   className="inline-flex items-center px-4 py-2 bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80 transition-colors text-sm font-medium"
                 >
-                  <Plus size={16} className="mr-2" />
+                  <FaPlus size={16} className="mr-2" />
                   Add Question
                 </button>
               </div>
@@ -226,7 +226,7 @@ export default function AdminPage() {
                         onClick={() => removeQuestion(index)}
                         className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-all duration-200 p-1 ml-2"
                       >
-                        <X size={16} />
+                        <FaTimesCircle size={16} />
                       </button>
                     </div>
                   </div>
@@ -249,7 +249,7 @@ export default function AdminPage() {
                 </>
               ) : (
                 <>
-                  <Send className="mr-3" size={20} />
+                  <FaPaperPlane className="mr-3" size={20} />
                   Generate Interview Link
                 </>
               )}
@@ -259,7 +259,7 @@ export default function AdminPage() {
               onClick={() => router.push('/interview/demo')}
               className="inline-flex items-center px-8 py-4 bg-secondary text-secondary-foreground rounded-xl font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 text-lg"
             >
-              <Camera className="mr-3" size={20} />
+              <FaCamera className="mr-3" size={20} />
               Preview Experience
             </button>
           </div>
@@ -267,7 +267,7 @@ export default function AdminPage() {
           {/* Info Card */}
           <div className="mt-8 interview-card p-6 glass-effect">
             <div className="flex items-start space-x-3">
-              <AlertTriangle className="text-amber-500 mt-0.5" size={20} />
+              <FaExclamationTriangle className="text-amber-500 mt-0.5" size={20} />
               <div>
                 <h3 className="font-semibold text-foreground mb-2">Important Notes</h3>
                 <ul className="text-muted-foreground text-sm space-y-1">
