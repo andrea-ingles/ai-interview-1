@@ -188,23 +188,38 @@ export default function InterviewPage() {
         body: JSON.stringify({
           sessionId,
           questionIndex,
-          candidateInfo
+          candidateName: candidateInfo.name
         }),
       })
 
       if (response.ok) {
         const data = await response.json()
+        const responseId = data.response.id
         
         // Upload video
         const formData = new FormData()
         formData.append('video', videoBlob)
         formData.append('sessionId', sessionId)
         formData.append('questionIndex', questionIndex)
+        formData.append('responseId', responseId)
 
-        await fetch('/api/interviews/upload-video', {
+        const uploadResponse = await fetch('/api/responses/upload-video-chunked', {
           method: 'POST',
           body: formData
         })
+
+        if (!uploadResponse.ok) {
+          const uploadError = await uploadResponse.json()
+          throw new Error(`Upload failed: ${uploadError.details || uploadError.error}`)
+        }
+
+        /*await fetch('/api/responses/upload-video', {
+          method: 'POST',
+          body: formData
+        })*/
+      } else {
+        const errorData = await response.json()  // ADD error handling for save failure
+        throw new Error(`Save failed: ${errorData.error || errorData.details}`)
       }
     } catch (error) {
       console.error('Error saving response:', error)
@@ -221,12 +236,43 @@ export default function InterviewPage() {
     }
   }
 
-  const startInterview = () => {
+  const startInterview = async () => {
     if (!candidateInfo.name || !candidateInfo.email) {
       alert('Please fill in your name and email')
       return
     }
-    setStep('interview')
+    // ADD THIS: Save candidate info to database
+    try {
+      setSaving(true)  // Show loading state
+      
+      const response = await fetch(`/api/interviews/${sessionId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          candidateName: candidateInfo.name,
+          candidateEmail: candidateInfo.email,
+          candidatePhone: candidateInfo.phone
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(`Failed to save candidate info: ${errorData.error}`)
+      }
+
+      const data = await response.json()
+      console.log('✅ Candidate saved:', data.candidate)
+      
+      setStep('interview')  // Now proceed to interview
+      
+    } catch (error) {
+      console.error('Error saving candidate:', error)
+      alert('Failed to save your information. Please try again.')
+    } finally {
+      setSaving(false)
+    }
   }
 
   if (loading) {

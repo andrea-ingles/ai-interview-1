@@ -37,7 +37,8 @@ export async function POST(request) {
       .from('candidates')
       .select('id')
       .eq('interview_id', interview.id)
-      .single()
+      .eq('name', candidateName)
+      .maybeSingle()
 
     if (candidateError) {
       console.log('❌ Candidate not found:', candidateError)
@@ -61,14 +62,16 @@ export async function POST(request) {
       const { data: updatedResponse, error: updateError } = await supabase
         .from('responses')
         .update({
-          recorded_at: new Date().toISOString()
+          updated_at: new Date().toISOString()
         })
         .eq('id', existingResponse.id)
         .select()
         .single()
 
       if (updateError) throw updateError
+
       response = updatedResponse
+
     } else {
       console.log('➕ Creating new response...')
       // Create new response
@@ -88,14 +91,14 @@ export async function POST(request) {
     }
 
     console.log('✅ Response saved successfully:', response.id)
-    NextResponse.json({ 
+    return NextResponse.json({ 
       success: true, 
       response: response 
     }, {status: 200})
 
   } catch (error) {
     console.error('💥 Save response error:', error)
-    NextResponse.json({ 
+    return NextResponse.json({ 
       error: 'Failed to save response',
       details: error.message 
     }, {status: 500})

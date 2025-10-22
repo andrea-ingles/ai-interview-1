@@ -9,6 +9,7 @@ export default function AdminResults() {
   const [loading, setLoading] = useState(true)
   const [selectedInterview, setSelectedInterview] = useState(null)
   const [expandedCandidates, setExpandedCandidates] = useState(new Set())
+  const [videoModal, setVideoModal] = useState({ open: false, url: '', candidate: '', question: '' })
 
   useEffect(() => {
     fetchResults()
@@ -17,8 +18,14 @@ export default function AdminResults() {
   const fetchResults = async () => {
     try {
       const response = await fetch('/api/admin/interviews')
-      const data = await response.json()
-      setInterviews(data.interviews || [])
+
+      if (response.ok) {
+        const data = await response.json()
+        setInterviews(data.interviews || [])
+      } else {
+        const errorData = await response.json()
+        console.error('Error fetching results:', errorData)
+      }
     } catch (error) {
       console.error('Error fetching results:', error)
     } finally {
@@ -61,6 +68,40 @@ export default function AdminResults() {
     return 'text-red-600'
   }
 
+  const handleViewVideo = (videoUrl, candidateName, questionIndex) => {
+    setVideoModal({
+      open: true,
+      url: videoUrl,
+      candidate: candidateName,
+      question: `Question ${questionIndex + 1}`
+    })
+  }
+
+  const handleDownloadVideo = async (videoUrl, candidateName, questionIndex) => {
+    try {
+      const response = await fetch(videoUrl)
+      if (!response.ok) throw new Error('Failed to fetch video')
+      
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${candidateName}_Question_${questionIndex + 1}.webm`
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+    } catch (error) {
+      console.error('Error downloading video:', error)
+      alert('Failed to download video. Please try again.')
+    }
+  }
+
+  const closeVideoModal = () => {
+    setVideoModal({ open: false, url: '', candidate: '', question: '' })
+  }
+
+
   if (loading) {
     return (
       <div className="min-h-screen gradient-bg flex items-center justify-center">
@@ -86,7 +127,7 @@ export default function AdminResults() {
                 <div>
                   <h1 className="text-4xl font-bold text-foreground">Interview Results</h1>
                   <p className="text-muted-foreground text-lg mt-2">
-                    Complete analysis of all video interviews
+                    Interview Results Dashboard
                   </p>
                 </div>
               </div>
@@ -95,7 +136,7 @@ export default function AdminResults() {
                 className="inline-flex items-center px-6 py-3 bg-secondary text-secondary-foreground rounded-lg font-medium hover:bg-secondary/80 transition-colors"
               >
                 <FaArrowLeft className="mr-2" size={18} />
-                Back to Setup
+                Back to Admin
               </button>
             </div>
           </div>

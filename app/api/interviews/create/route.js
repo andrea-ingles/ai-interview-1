@@ -1,7 +1,9 @@
 import { supabase } from '../../../lib/database'
-import { v4 as uuidv4 } from 'uuid'
 //import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
+import { randomUUID  } from 'crypto'
+
+const uuidv4 = () => randomUUID()
 
 /*const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY

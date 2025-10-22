@@ -18,14 +18,14 @@ export default function ResultsDetailPage() {
   const fetchInterviewDetails = async () => {
     try {
       // This would fetch specific interview details
-      // For now, showing demo data
-      setInterview({
-        id: sessionId,
-        job_title: 'Senior Frontend Developer',
-        company_name: 'Tech Company',
-        status: 'Complete',
-        analysis_status: 'Ready'
-      })
+      const response = await fetch(`/api/admin/interview/${sessionId}`)
+      if (response.ok) {
+        const data = await response.json()
+        setInterview(data)
+      } else {
+        const errorData = await response.json()
+        console.error('Error fetching results:', errorData)
+      }
     } catch (error) {
       console.error('Error fetching interview details:', error)
     } finally {

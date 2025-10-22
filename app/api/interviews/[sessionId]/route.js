@@ -1,3 +1,4 @@
+//file app/api/interviews/[sessionId]/route.js
 import { supabase } from '../../../../lib/database.js'
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
@@ -45,7 +46,7 @@ export async function PUT(request, { params }) {
       .eq('session_id', sessionId)
       .single()
 
-    if (interviewError){
+    if (interviewError || !interview){
       return NextResponse.json({ error: interviewError.message }, { status: 400 })
     }
 
@@ -59,11 +60,20 @@ export async function PUT(request, { params }) {
         phone: candidatePhone
       })
       .select()
-      .single()
+      .maybeSingle()
+    
 
     if (candidateError){
+      console.error('❌ Supabase upsert error:', candidateError)
       return NextResponse.json({ error: candidateError.message }, { status: 400 })
     }
+
+    if (!candidate) {
+      console.warn('⚠️ Candidate upsert returned no data — possibly due to no changes or missing return preference.')
+      return NextResponse.json({ message: 'Candidate updated (no data returned)' }, { status: 200 })
+    }
+
+    console.log('✅ Candidate created or updated:', candidate.name)
 
     return NextResponse.json({ candidate })
 
