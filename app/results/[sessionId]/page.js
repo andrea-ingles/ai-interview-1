@@ -1,11 +1,13 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import { FaArrowLeft, FaVideo, FaComment, FaFileAlt, FaClock, FaCheckCircle, FaUser, FaBrain } from 'react-icons/fa'
 
 export default function ResultsDetailPage() {
   const router = useRouter()
-  const { sessionId } = router.query
+  const params = useParams()
+  /** @type {string} */
+  const sessionId = params.sessionId
   const [loading, setLoading] = useState(true)
   const [interview, setInterview] = useState(null)
 

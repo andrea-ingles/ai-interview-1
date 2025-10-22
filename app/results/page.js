@@ -1,3 +1,4 @@
+// file: app/results/page.js
 'use client'
 import { useState, useEffect } from 'react'
 import { FaFileAlt, FaUser, FaBrain, FaVideo, FaComment, FaCheckCircle, FaTimesCircle, FaClock, FaArrowLeft, FaDownload, FaEye } from 'react-icons/fa'
@@ -79,10 +80,24 @@ export default function AdminResults() {
 
   const handleDownloadVideo = async (videoUrl, candidateName, questionIndex) => {
     try {
+
+      // Validate URL first
+      if (!videoUrl) {
+        throw new Error('Video URL is missing or invalid')
+      }
+
+      console.log('Attempting to download video from:', videoUrl) // Debug log
+
       const response = await fetch(videoUrl)
-      if (!response.ok) throw new Error('Failed to fetch video')
+      if (!response.ok) throw new Error(`Failed to fetch video (${response.statusText}): ${response.message}`)
       
       const blob = await response.blob()
+
+      // Check if blob is valid
+      if (!blob || blob.size === 0) {
+        throw new Error('Downloaded video file is empty')
+      }
+
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
@@ -91,9 +106,12 @@ export default function AdminResults() {
       a.click()
       window.URL.revokeObjectURL(url)
       document.body.removeChild(a)
+
+      console.log('Video downloaded successfully') // Success log
     } catch (error) {
       console.error('Error downloading video:', error)
-      alert('Failed to download video. Please try again.')
+      console.error('Video URL was:', videoUrl) // Log the URL that failed
+      alert(`Failed to download video: ${error.message}. Please try again.`)
     }
   }
 
@@ -403,11 +421,15 @@ export default function AdminResults() {
                                                 Recorded: {new Date(response.recorded_at).toLocaleString()}
                                               </span>
                                               <div className="flex items-center space-x-2">
-                                                <button className="inline-flex items-center px-3 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors">
+                                                <button 
+                                                  onClick={() => handleViewVideo(response.video_url, candidate.name, response.question_index)}
+                                                  className="inline-flex items-center px-3 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors">
                                                   <FaEye size={14} className="mr-1" />
                                                   View Video
                                                 </button>
-                                                <button className="inline-flex items-center px-3 py-2 bg-secondary text-secondary-foreground rounded-lg text-sm font-medium hover:bg-secondary/80 transition-colors">
+                                                <button 
+                                                  onClick={() => handleDownloadVideo(response.video_url, candidate.name, response.question_index)}
+                                                  className="inline-flex items-center px-3 py-2 bg-secondary text-secondary-foreground rounded-lg text-sm font-medium hover:bg-secondary/80 transition-colors">
                                                   <FaDownload size={14} className="mr-1" />
                                                   Download
                                                 </button>
@@ -432,6 +454,33 @@ export default function AdminResults() {
           )}
         </div>
       </div>
+      {videoModal.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
+          <div className="bg-white rounded-2xl shadow-xl w-[90%] max-w-2xl p-6 relative">
+            <button
+              onClick={closeVideoModal}
+              className="absolute top-3 right-3 text-gray-500 hover:text-gray-700"
+            >
+              ✕
+            </button>
+
+            <h2 className="text-xl font-semibold mb-3">
+              {videoModal.candidate} — {videoModal.question}
+            </h2>
+
+            <video
+              src={videoModal.url}
+              controls
+              autoPlay
+              className="w-full max-h-[70vh] rounded-xl bg-black"
+            >
+              Your browser does not support the video tag.
+            </video>
+          </div>
+        </div>
+      )
+    }
+    
     </div>
   )
 }

@@ -1,3 +1,5 @@
+//file app/interview/[sessionId]/page.js
+
 'use client'
 import { useState, useRef, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
@@ -195,6 +197,7 @@ export default function InterviewPage() {
       if (response.ok) {
         const data = await response.json()
         const responseId = data.response.id
+        const candidateId = data.response.candidate_id
         
         // Upload video
         const formData = new FormData()
@@ -202,6 +205,7 @@ export default function InterviewPage() {
         formData.append('sessionId', sessionId)
         formData.append('questionIndex', questionIndex)
         formData.append('responseId', responseId)
+        formData.append('candidateId', candidateId)
 
         const uploadResponse = await fetch('/api/responses/upload-video-chunked', {
           method: 'POST',

@@ -38,6 +38,7 @@ export async function POST(request) {
     const sessionId = formData.get("sessionId")
     const questionIndex = formData.get("questionIndex")
     const responseId = formData.get("responseId")
+    const candidateId = formData.get("candidateId")
 
     console.log('📋 Chunked upload params:', { 
       sessionId, 
@@ -129,7 +130,7 @@ export async function POST(request) {
 
     console.log('🧪 uuidv4 test:', typeof uuidv4)
     // CHANGED: Generate filename with proper structure
-    const fileName = `${sessionId}/${questionIndex}/${uuidv4()}.webm`
+    const fileName = `${sessionId}/${candidateId}/${questionIndex}/${uuidv4()}.webm`
     console.log('📁 Generated chunked filename:', fileName)
 
     // ADDED: Chunked upload with retry logic
@@ -148,7 +149,7 @@ export async function POST(request) {
           .from('interview-videos')
           .upload(fileName, videoBuffer, {
             contentType: 'video/webm',
-            upsert: false,
+            upsert: true,
             cacheControl: '3600',
             duplex: 'half' // ADDED: Required for chunked uploads
           })
@@ -212,12 +213,8 @@ export async function POST(request) {
     console.log('🔗 Generating public URL for chunked upload...')
     const { data: { publicUrl } } = supabase.storage
       .from('interview-videos')
-      .getPublicUrl(fileName, {
-        download: false, // ADDED: Ensure streaming access
-        transform: {
-          quality: 80 // ADDED: Optimize for web delivery
-        }
-      })
+      .getPublicUrl(fileName)
+      
     
     console.log('🔗 Chunked upload public URL generated:', publicUrl)
 
