@@ -181,6 +181,8 @@ export default function InterviewPage() {
 
     try {
       setSaving(true)
+
+      const isLastQuestion = currentQuestion === interview.questions.length - 1;
       
       const response = await fetch('/api/responses/save', {
         method: 'POST',
@@ -190,7 +192,8 @@ export default function InterviewPage() {
         body: JSON.stringify({
           sessionId,
           questionIndex,
-          candidateName: candidateInfo.name
+          candidateName: candidateInfo.name,
+          step: isLastQuestion ? 'complete' : 'interview',
         }),
       })
 
