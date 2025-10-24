@@ -78,13 +78,15 @@ export default function AdminPage() {
       })
 
       const data = await response.json()
-      if (data.success) {
-        const link = `${window.location.origin}/interview/${data.sessionId}`
+      if (response.ok) {
+        const link = data.interviewUrl
         setGeneratedLink(link)
         setShowSuccess(true)
         
         // Copy to clipboard
         navigator.clipboard.writeText(link)
+         alert(`Interview link created and copied to clipboard!\n${link}`)
+
       } else {
         alert('Error creating interview: ' + (data.error || 'Unknown error'))
       }

@@ -32,7 +32,7 @@ export async function GET(request, { params }) {
 
         // Calculate some statistics
         const interview = response.candidates.interviews // Assuming one candidate per interview
-        const questions = interview.questions[response.question_index]
+        const question = interview.questions[response.question_index]
 
 
         return NextResponse.json({
