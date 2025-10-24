@@ -28,6 +28,7 @@ export default function InterviewPage() {
   })
   const [step, setStep] = useState('info') // info, interview, complete
   const [saving, setSaving] = useState(false)
+  const [processingError, setProcessingError] = useState(null)
 
   // Timer effect
   useEffect(() => {
@@ -184,6 +185,7 @@ export default function InterviewPage() {
 
       const isLastQuestion = currentQuestion === interview.questions.length - 1;
       
+      // Step 1: Create response record
       const response = await fetch('/api/responses/save', {
         method: 'POST',
         headers: {
@@ -202,7 +204,8 @@ export default function InterviewPage() {
         const responseId = data.response.id
         const candidateId = data.response.candidate_id
         
-        // Upload video
+        // Step 2: Upload video
+        console.log('Uploading video...')
         const formData = new FormData()
         formData.append('video', videoBlob)
         formData.append('sessionId', sessionId)
@@ -220,10 +223,25 @@ export default function InterviewPage() {
           throw new Error(`Upload failed: ${uploadError.details || uploadError.error}`)
         }
 
-        /*await fetch('/api/responses/upload-video', {
+        // Step 3: Process (transcribe + analyze) in background
+        console.log('Starting background processing...')
+        fetch('/api/responses/process', {
           method: 'POST',
-          body: formData
-        })*/
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ responseId })
+        }).then(async processResponse => {
+          if (processResponse.ok) {
+            console.log('Background processing completed')
+          } else {
+            const errorData = await processResponse.json()
+            console.error('Background processing failed', errorData)
+            setProcessingError(errorData.error)
+          }
+        }).catch(error => {
+          console.error('Background processing error:', error)
+          setProcessingError(errorData.error)
+        })
+ 
       } else {
         const errorData = await response.json()  // ADD error handling for save failure
         throw new Error(`Save failed: ${errorData.error || errorData.details}`)
