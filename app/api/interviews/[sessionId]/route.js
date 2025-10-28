@@ -1,5 +1,5 @@
 //file app/api/interviews/[sessionId]/route.js
-import { supabase } from '../../../../lib/database.js'
+import { supabase } from '../../../../lib/authServer.js'
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 
@@ -9,7 +9,7 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 const supabase = createClient(supabaseUrl, supabaseAnonKey)*/
 
 // GET method - Get interview configuration
-export async function GET(request, { params }) {
+export async function GET(request, { params, user }) {
   try {
 
       const { sessionId } = await params
@@ -32,6 +32,7 @@ export async function GET(request, { params }) {
       return NextResponse.json({ error: 'Failed to fetch interview' }, {status: 500})
     }
 }
+
 
 // PUT method - Update candidate info
 export async function PUT(request, { params }) {

@@ -1,12 +1,11 @@
-import { supabase } from '../../../../lib/database.js'
+import { supabase } from '../../../../lib/authServer.js'
+import { withAdminAuth } from '../../../../lib/authMiddleware.js'
 import { NextResponse } from 'next/server'
 
-// GET method - Get all interviews
-export async function GET(request, { params }) {
+// GET method - Get all interviews (Admin-only)
+async function getHandler(request, { user }) {
   try {
-
-        //const { sessionId } = await params
-
+        console.log(`Now I'll get the interviews`)
         // Get interview configuration
         const { data: interviews, error } = await supabase
             .from('interviews')
@@ -31,6 +30,7 @@ export async function GET(request, { params }) {
                 )
             `)
             .order('created_at', { ascending: false })
+        console.log('Number of interviews fetched: ', interviews.length)
 
         if (error) {
             return NextResponse.json({ error: 'Interviews not found' }, {status: 404})
@@ -39,7 +39,7 @@ export async function GET(request, { params }) {
         // Calculate statistics for each interview
         const interviewsWithStats = interviews.map(interview => {
             const candidates = interview.candidates || []
-            const totalQuestions = interview.questions.length
+            const totalQuestions = interview.questions?.length
 
             const stats = candidates.map(candidate => {
                 const responses = candidate.responses || []
@@ -47,7 +47,10 @@ export async function GET(request, { params }) {
                     ...candidate,
                     totalQuestions,
                     completedQuestions: responses.length,
-                    completionRate: totalQuestions > 0 ? (responses.length / totalQuestions * 100).toFixed(1) : 0,
+                    completionRate: 
+                        totalQuestions > 0 
+                        ? (responses.length / totalQuestions * 100).toFixed(1) 
+                        : 0,
                     hasTranscriptions: responses.filter(r => r.transcription).length,
                     hasAnalysis: responses.filter(r => r.ai_analysis).length
                 }
@@ -60,6 +63,8 @@ export async function GET(request, { params }) {
                 completedCandidates: candidates.filter(c => c.completed_at).length
             }
         })
+
+        console.log('success: true, interviews:', interviewsWithStats || [], ', total:', interviewsWithStats?.length || 0)
 
         return NextResponse.json({
             success: true, 
@@ -75,3 +80,5 @@ export async function GET(request, { params }) {
         {status: 500})
     }
 }
+
+export const GET = withAdminAuth(getHandler)

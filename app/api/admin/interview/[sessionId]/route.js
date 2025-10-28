@@ -1,11 +1,21 @@
-import { supabase } from '../../../../../lib/database.js'
+import { supabase } from '../../../../../lib/authServer.js'
+import { withAdminAuth } from '../../../../../lib/authMiddleware.js'
 import { NextResponse } from 'next/server'
 
-// GET method - Get all interviews
-export async function GET(request, { params }) {
+// GET method - Get all interviews (Admin-only)
+async function getHandler(request, context) {
   try {
 
+        //console.log('Context: ', context)
+        const { params, user } = await context
         const { sessionId } = await params
+        //console.log('sessionId: ',sessionId)
+
+
+        if (!sessionId) {
+            return NextResponse.json({ error: 'Missing sessionId in params' }, { status: 400 })
+        }
+        
 
         // Get interview configuration
         const { data: interview, error } = await supabase
@@ -66,3 +76,5 @@ export async function GET(request, { params }) {
         {status: 500})
     }
 }
+
+export const GET = withAdminAuth(getHandler)

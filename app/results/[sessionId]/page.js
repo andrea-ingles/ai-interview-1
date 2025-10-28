@@ -1,15 +1,24 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useTransition, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { FaArrowLeft, FaVideo, FaComment, FaFileAlt, FaClock, FaCheckCircle, FaUser, FaBrain } from 'react-icons/fa'
+import { FaArrowLeft, FaVideo, FaComment, FaFileAlt, FaClock, FaCheckCircle, FaUser, FaBrain, FaInbox, FaPlus, FaRegEdit, FaList, FaCog, FaKey, FaSignOutAlt } from 'react-icons/fa'
 
-export default function ResultsDetailPage() {
+import ProtectedRoute from '../../../components/ProtectedRoute'
+import { useAuthContext } from '../../../components/AuthProvider'
+import { supabaseClient } from '../../../lib/authClient'
+
+
+function ResultsPageContent() {
   const router = useRouter()
   const params = useParams()
   /** @type {string} */
   const sessionId = params.sessionId
+  const { user } = useAuthContext()
   const [loading, setLoading] = useState(true)
   const [interview, setInterview] = useState(null)
+  const [isPending, startTransition] = useTransition();
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false)
+  const dropdownRef = useRef(null)
 
   useEffect(() => {
     if (sessionId) {
@@ -17,10 +26,33 @@ export default function ResultsDetailPage() {
     }
   }, [sessionId])
 
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsDropdownOpen(false)
+      }
+    }
+
+    if (isDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [isDropdownOpen])
+
   const fetchInterviewDetails = async () => {
     try {
       // This would fetch specific interview details
-      const response = await fetch(`/api/admin/interview/${sessionId}`)
+      const { data: { session } } = await supabaseClient.auth.getSession()
+      const response = await fetch(`/api/admin/interview/${sessionId}`, {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      })
+
       if (response.ok) {
         const data = await response.json()
         setInterview(data)
@@ -34,6 +66,33 @@ export default function ResultsDetailPage() {
       setLoading(false)
     }
   }
+
+  const handleLogout = async () => {
+    await supabaseClient.auth.signOut()
+    startTransition(() => {
+      router.push('/login')
+    })
+  }
+
+  const handleAccountSettings = () => {
+    setIsDropdownOpen(false)
+    startTransition(() => {
+      router.push('/account-settings')
+    })
+  }
+
+  const handleChangePassword = () => {
+    setIsDropdownOpen(false)
+    startTransition(() => {
+      router.push('/reset-password')
+    })
+  }
+
+  const handleLogoutFromDropdown = async () => {
+    setIsDropdownOpen(false)
+    await handleLogout()
+  }
+
 
   if (loading) {
     return (
@@ -53,7 +112,7 @@ export default function ResultsDetailPage() {
           <h2 className="text-2xl font-bold text-foreground mb-4">Interview Not Found</h2>
           <p className="text-muted-foreground mb-6">This interview may not exist or has been removed.</p>
           <button
-            onClick={() => router.push('/results')}
+            onClick={() => startTransition(() => {router.push('/results')})}
             className="px-6 py-3 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors"
           >
             Back to Results
@@ -65,13 +124,130 @@ export default function ResultsDetailPage() {
 
   return (
     <div className="min-h-screen gradient-bg">
+      {/* Lean Header with Navigation */} 
+      <nav className="bg-white border-b sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="flex justify-between items-center h-14">
+            {/* Logo */}
+            <div className="flex items-center">
+              <div className="w-9 h-9 bg-gradient-to-br from-pink-400 to-pink-500 rounded-lg flex items-center justify-center shadow-sm">
+                <span className="text-white font-bold text-xs">AI</span>
+              </div>
+            </div>
+
+            {/* Navigation Menu */}
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => startTransition(() => router.push('/homepage'))}
+                className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors"
+              >
+                <FaInbox className="w-4 h-4" />
+                <span className="hidden md:inline">Home</span>
+              </button>
+
+              <button
+                onClick={() => startTransition(() => router.push('/create'))}
+                className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors"
+              >
+                <FaPlus className="w-4 h-4" />
+                <span className="hidden md:inline">Create</span>
+              </button>
+
+              <button
+                onClick={() => startTransition(() => router.push('/results'))}
+                className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium bg-gray-100 text-gray-900 transition-colors"
+              >
+                <FaRegEdit className="w-4 h-4" />
+                <span className="hidden md:inline">Review</span>
+              </button>
+
+              <button
+                onClick={() => startTransition(() => router.push('/dashboard'))}
+                className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors"
+              >
+                <FaList className="w-4 h-4" />
+                <span className="hidden md:inline">My Interviews</span>
+              </button>
+
+              {/* Account Dropdown */}
+              <div className="relative" ref={dropdownRef}>
+                <button
+                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                  className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors"
+                >
+                  <div className="w-7 h-7 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center text-white text-xs font-semibold shadow-sm">
+                    {user?.email?.charAt(0).toUpperCase() || 'U'}
+                  </div>
+                  <span className="hidden lg:inline">{user?.name || 'Account'}</span>
+                </button>
+
+                {/* Dropdown Menu */}
+                {isDropdownOpen && (
+                  <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-1 animate-slide-down z-50">
+                    <button
+                      onClick={handleAccountSettings}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                    >
+                      <FaCog className="w-4 h-4 text-gray-500" />
+                      <span>Account Settings</span>
+                    </button>
+                    
+                    <button
+                      onClick={handleChangePassword}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                    >
+                      <FaKey className="w-4 h-4 text-gray-500" />
+                      <span>Change Password</span>
+                    </button>
+                    
+                    <div className="border-t border-gray-100 my-1"></div>
+                    
+                    <button
+                      onClick={handleLogoutFromDropdown}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                    >
+                      <FaSignOutAlt className="w-4 h-4" />
+                      <span>Log out</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </nav>
+
+
+      {/* Old Header
+      <div className="bg-white shadow-sm border-b">
+        <div className="max-w-6xl mx-auto px-4 py-4">
+          <div className="flex justify-between items-center">
+            <h1 className="text-xl font-semibold text-gray-800">Interview Results</h1>
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center text-gray-600">
+                <FaUser className="w-4 h-4 mr-2" />
+                <span className="text-sm">{user?.email}</span>
+              </div>
+              <button
+                onClick={handleLogout}
+                className="flex items-center px-3 py-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <LogOut className="w-4 h-4 mr-2" />
+                Logout
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>*/}
+
+      {/* Rest of my existing results page content */}
       <div className="py-8 px-4">
         <div className="max-w-4xl mx-auto">
           {/* Header */}
           <div className="interview-card p-8 glass-effect mb-8">
             <div className="flex items-center justify-between mb-6">
               <button
-                onClick={() => router.push('/results')}
+                onClick={() => startTransition(() => {router.push('/results')})}
                 className="inline-flex items-center px-4 py-2 bg-secondary text-secondary-foreground rounded-lg font-medium hover:bg-secondary/80 transition-colors"
               >
                 <FaArrowLeft className="mr-2" size={16} />
@@ -132,7 +308,7 @@ export default function ResultsDetailPage() {
             </div>
           </div>
 
-          {/* Coming Soon Section */}
+          {/* Coming Soon Section
           <div className="interview-card p-12 glass-effect text-center">
             <div className="p-6 bg-muted rounded-full w-fit mx-auto mb-6">
               <FaBrain className="text-muted-foreground" size={48} />
@@ -191,22 +367,30 @@ export default function ResultsDetailPage() {
             
             <div className="space-x-4">
               <button
-                onClick={() => router.push('/admin')}
+                onClick={() => startTransition(() => {router.push('/admin')})}
                 className="px-8 py-4 bg-primary text-primary-foreground rounded-xl font-semibold text-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
               >
                 Create New Interview
               </button>
               
               <button
-                onClick={() => router.push('/results')}
+                onClick={() => startTransition(() => {router.push('/results')})}
                 className="px-8 py-4 bg-secondary text-secondary-foreground rounded-xl font-semibold text-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
               >
                 View All Results
               </button>
             </div>
-          </div>
+          </div>*/}
         </div>
       </div>
     </div>
+  )
+}
+
+export default function ResultsPage() {
+  return (
+    <ProtectedRoute adminOnly={false}>
+      <ResultsPageContent />
+    </ProtectedRoute>
   )
 }

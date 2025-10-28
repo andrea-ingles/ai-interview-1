@@ -1,5 +1,5 @@
 import { analyzeResponse } from '../../../../lib/ai-analysis.js'
-import { supabase } from '../../../../lib/database.js'
+import { supabase } from '../../../../lib/authServer.js'
 
 import { NextResponse } from 'next/server'
 /*import { createClient } from '@supabase/supabase-js'

@@ -1,7 +1,7 @@
 //file app/interview/[sessionId]/page.js
 
 'use client'
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useTransition } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { FaPlay, FaSquare, FaArrowRight, FaCheckCircle, FaCamera, FaClock, FaUser, FaEnvelope, FaPhone, FaBuilding } from 'react-icons/fa'
 
@@ -29,6 +29,7 @@ export default function InterviewPage() {
   const [step, setStep] = useState('info') // info, interview, complete
   const [saving, setSaving] = useState(false)
   const [processingError, setProcessingError] = useState(null)
+  const [isPending, startTransition] = useTransition();
 
   // Timer effect
   useEffect(() => {
@@ -70,11 +71,15 @@ export default function InterviewPage() {
         const data = await response.json()
         setInterview(data.interview)
       } else {
-        router.push('/')
+        startTransition(() => {
+          router.push('/')
+        })
       }
     } catch (error) {
       console.error('Error fetching interview:', error)
-      router.push('/')
+      startTransition(() => {
+        router.push('/')
+      })
     } finally {
       setLoading(false)
     }
@@ -318,7 +323,7 @@ export default function InterviewPage() {
           <h2 className="text-2xl font-bold text-foreground mb-4">Interview Not Found</h2>
           <p className="text-muted-foreground mb-6">The interview link may be invalid or expired.</p>
           <button
-            onClick={() => router.push('/')}
+            onClick={() => startTransition(() => {router.push('/')})}
             className="px-6 py-3 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors"
           >
             Go Home
@@ -457,7 +462,7 @@ export default function InterviewPage() {
                 </div>
                 
                 <button
-                  onClick={() => router.push('/')}
+                  onClick={() => startTransition(() => {router.push('/')})}
                   className="px-8 py-3 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors"
                 >
                   Close

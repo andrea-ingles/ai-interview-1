@@ -1,6 +1,6 @@
 //file: app/api/transcribe/route.js
 import { transcribeAudio } from '../../../../lib/transcription.js'
-import { supabase } from '../../../../lib/database.js'
+import { supabase } from '../../../../lib/authServer.js'
 
 import { NextResponse } from 'next/server'
 /*import { createClient } from '@supabase/supabase-js'

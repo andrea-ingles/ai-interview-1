@@ -1,7 +1,7 @@
 //file: app/api/responses/save/route.js
-import { supabase } from '../../../../lib/database.js'
+import { supabase } from '../../../../lib/authServer.js'
 import { NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+//import { createClient } from '@supabase/supabase-js'
 
 /*const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY

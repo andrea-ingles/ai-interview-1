@@ -1,5 +1,5 @@
 // file app/api/responses/upload-video-chunked/route.js
-import { supabase } from '../../../../lib/database.js'
+import { supabase } from '../../../../lib/authServer.js'
 import { uploadVideo } from '../../../../lib/storage.js'
 import { randomUUID  } from 'crypto'
 

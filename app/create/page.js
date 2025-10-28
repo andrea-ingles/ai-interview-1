@@ -1,13 +1,22 @@
+// file: app/create/page.js
+// Page where an admin can create a new interview
 'use client'
-import { useState } from 'react'
+import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { FaCog, FaPaperPlane, FaCamera, FaPlus, FaTimesCircle, FaExclamationTriangle, FaCheckCircle } from 'react-icons/fa'
+import { FaCog, FaPaperPlane, FaCamera, FaPlus, FaTimesCircle, FaExclamationTriangle, FaCheckCircle, FaUser, FaSignOutAlt } from 'react-icons/fa'
+import ProtectedRoute from '../../components/ProtectedRoute'
+import { useAuthContext } from '../../components/AuthProvider'
+import { supabaseClient } from '../../lib/authClient'
 
-export default function AdminPage() {
+
+
+function AdminPageContent() {
   const router = useRouter()
+  const { user } = useAuthContext()
   const [loading, setLoading] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
   const [generatedLink, setGeneratedLink] = useState('')
+  const [isPending, startTransition] = useTransition()
   
   const [interviewConfig, setInterviewConfig] = useState({
     jobTitle: '',
@@ -52,6 +61,14 @@ export default function AdminPage() {
     setInterviewConfig({...interviewConfig, questions: newQuestions})
   }
 
+  const handleLogout = async () => {
+    await supabaseClient.auth.signOut()
+    startTransition(() => {
+      router.push('/login')
+    })
+  }
+
+
   const generateInterviewLink = async () => {
     if (!interviewConfig.jobTitle || !interviewConfig.companyName) {
       alert('Please fill in job title and company name')
@@ -62,10 +79,20 @@ export default function AdminPage() {
     setShowSuccess(false)
     
     try {
-      const response = await fetch('/api/interviews/create', {
+      // Get the current user's session for the API call
+      const { data: { session } } = await supabaseClient.auth.getSession()
+      console.log('session :', session)
+
+      if (!session) {
+        console.error("No session found!")
+      return
+  }
+
+      const response = await fetch('/api/admin/interviews/create', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
         },
         body: JSON.stringify({
           jobTitle: interviewConfig.jobTitle,
@@ -102,6 +129,29 @@ export default function AdminPage() {
 
   return (
     <div className="min-h-screen gradient-bg">
+      {/* Header with user info and logout */}
+      <div className="bg-white shadow-sm border-b">
+        <div className="max-w-7xl mx-auto px-4 py-4">
+          <div className="flex justify-between items-center">
+            <h1 className="text-xl font-semibold text-gray-800">Create a new Interview</h1>
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center text-gray-600">
+                <FaUser className="w-4 h-4 mr-2" />
+                <span className="text-sm">{user?.email}</span>
+              </div>
+              <button
+                onClick={handleLogout}
+                className="flex items-center px-3 py-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <FaSignOutAlt className="w-4 h-4 mr-2" />
+                Logout
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Rest of your existing admin page content */}
       <div className="py-8 px-4">
         <div className="max-w-7xl mx-auto">
           {/* Header Card */}
@@ -258,7 +308,7 @@ export default function AdminPage() {
             </button>
             
             <button
-              onClick={() => router.push('/interview/demo')}
+              onClick={() => startTransition(() => {router.push('/interview/demo')}) }
               className="inline-flex items-center px-8 py-4 bg-secondary text-secondary-foreground rounded-xl font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 text-lg"
             >
               <FaCamera className="mr-3" size={20} />
@@ -284,5 +334,13 @@ export default function AdminPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function AdminPage() {
+  return (
+    <ProtectedRoute adminOnly={true}>
+      <AdminPageContent />
+    </ProtectedRoute>
   )
 }

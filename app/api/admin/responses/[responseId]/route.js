@@ -1,8 +1,8 @@
 import { supabase } from '../../../lib/database.js'
 import { NextResponse } from 'next/server'
 
-// GET method - Get all interviews
-export async function GET(request, { params }) {
+// GET method - Get all interviews (Admin-only)
+async function getHandler(request, { params, user }) {
   try {
 
         const { responseId } = await params
@@ -30,6 +30,12 @@ export async function GET(request, { params }) {
             return NextResponse.json({ error: 'Response not found' }, {status: 404})
         }
 
+        // Security check: ensure the response belongs to an interview created by current user
+        if (response.candidates.interviews.created_by !== req.user.id) {
+            return NextResponse.json({ error: 'Access denied' }, {status: 403})
+    }
+
+
         // Calculate some statistics
         const interview = response.candidates.interviews // Assuming one candidate per interview
         const question = interview.questions[response.question_index]
@@ -44,7 +50,7 @@ export async function GET(request, { params }) {
                 jobTitle: interview.job_title,
                 companyName: interview.company_name
             }
-        })
+        }, {status: 200})
 
     } catch (error) {
       console.error('Get response error:', error)
@@ -54,3 +60,5 @@ export async function GET(request, { params }) {
         {status: 500})
     }
 }
+
+export const GET = withAdminAuth(getHandler)

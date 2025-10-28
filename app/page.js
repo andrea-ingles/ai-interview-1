@@ -1,8 +1,22 @@
 'use client'
+import { useTransition } from 'react'
 import { useRouter } from 'next/navigation'
+import { useAuthContext } from '../components/AuthProvider'
+
 
 export default function Home() {
+    const { user, loading } = useAuthContext()
     const router = useRouter()
+    const [isPending, startTransition] = useTransition();
+
+    const handleAdminClick = () => {
+        if (!user) {
+        startTransition(() => router.push('/login'))
+        } else {
+        startTransition(() => router.push('/homepage'))
+        }
+    }
+
 
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
@@ -19,10 +33,11 @@ export default function Home() {
                 <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
                     <div className="space-y-4">
                         <button
-                        onClick={() => router.push('/admin')}
+                        onClick={handleAdminClick}
+                        disabled={loading}
                         className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                         >
-                        Setup New Interview
+                        {loading ? 'Loading...' : user ? 'Go to Admin Platform' : 'Log in'}
                         </button>
                         
                         <div className="text-center text-sm text-gray-500">
@@ -35,7 +50,7 @@ export default function Home() {
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                         onKeyDown={(e) => {
                             if (e.key === 'Enter' && e.target.value.trim()) {
-                            router.push(`/interview/${e.target.value.trim()}`)
+                            startTransition(() => {router.push(`/interview/${e.target.value.trim()}`)})
                             }
                         }}
                         />

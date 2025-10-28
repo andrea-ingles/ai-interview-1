@@ -1,5 +1,5 @@
 //file: app/api/responses/process/route.js
-import { supabase } from '../../../../lib/database.js'
+import { supabase } from '../../../../lib/authServer.js'
 import { NextResponse } from 'next/server'
 
 // POST method - Save response

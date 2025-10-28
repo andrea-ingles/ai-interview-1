@@ -1,16 +1,22 @@
 // file: app/results/page.js
 'use client'
-import { useState, useEffect } from 'react'
-import { FaFileAlt, FaUser, FaBrain, FaVideo, FaComment, FaCheckCircle, FaTimesCircle, FaClock, FaArrowLeft, FaDownload, FaEye } from 'react-icons/fa'
+import { useState, useEffect, useTransition } from 'react'
+import { FaFileAlt, FaUser, FaBrain, FaVideo, FaComment, FaCheckCircle, FaTimesCircle, FaClock, FaArrowLeft, FaDownload, FaEye, FaSignOutAlt } from 'react-icons/fa'
 import { useRouter } from 'next/navigation'
+import ProtectedRoute from '../../components/ProtectedRoute'
+import { useAuthContext } from '../../components/AuthProvider'
+import { supabaseClient } from '../../lib/authClient'
 
-export default function AdminResults() {
+
+function AdminResultsContent() {
   const router = useRouter()
+  const { user } = useAuthContext()
   const [interviews, setInterviews] = useState([])
   const [loading, setLoading] = useState(true)
   const [selectedInterview, setSelectedInterview] = useState(null)
   const [expandedCandidates, setExpandedCandidates] = useState(new Set())
   const [videoModal, setVideoModal] = useState({ open: false, url: '', candidate: '', question: '' })
+  const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
     fetchResults()
@@ -18,7 +24,16 @@ export default function AdminResults() {
 
   const fetchResults = async () => {
     try {
-      const response = await fetch('/api/admin/interviews')
+      //console.log ('It will now try to fetch results')
+      // Get the current user's session for the API call
+      const { data: { session } } = await supabaseClient.auth.getSession()
+      //console.log('Session information:', session)
+
+      const response = await fetch('/api/admin/interviews', {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      })
 
       if (response.ok) {
         const data = await response.json()
@@ -33,6 +48,14 @@ export default function AdminResults() {
       setLoading(false)
     }
   }
+
+  const handleLogout = async () => {
+    await supabaseClient.auth.signOut()
+    startTransition(() => {
+      router.push('/login')
+    })
+  }
+
 
   const getRecommendationColor = (recommendation) => {
     switch (recommendation?.toLowerCase()) {
@@ -133,6 +156,28 @@ export default function AdminResults() {
 
   return (
     <div className="min-h-screen gradient-bg">
+       {/* Header with user info and logout */}
+      <div className="bg-white shadow-sm border-b">
+        <div className="max-w-7xl mx-auto px-4 py-4">
+          <div className="flex justify-between items-center">
+            <h1 className="text-xl font-semibold text-gray-800">Interview Results Dashboard</h1>
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center text-gray-600">
+                <FaUser className="w-4 h-4 mr-2" />
+                <span className="text-sm">{user?.email}</span>
+              </div>
+              <button
+                onClick={handleLogout}
+                className="flex items-center px-3 py-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <FaSignOutAlt className="w-4 h-4 mr-2" />
+                Logout
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div className="py-8 px-4">
         <div className="max-w-7xl mx-auto">
           {/* Header */}
@@ -150,11 +195,11 @@ export default function AdminResults() {
                 </div>
               </div>
               <button
-                onClick={() => router.push('/admin')}
+                onClick={() => startTransition(() => {router.push('/homepage')})}
                 className="inline-flex items-center px-6 py-3 bg-secondary text-secondary-foreground rounded-lg font-medium hover:bg-secondary/80 transition-colors"
               >
                 <FaArrowLeft className="mr-2" size={18} />
-                Back to Admin
+                Back to Newsboard
               </button>
             </div>
           </div>
@@ -169,7 +214,7 @@ export default function AdminResults() {
                 Create an interview in the admin panel to get started.
               </p>
               <button
-                onClick={() => router.push('/admin')}
+                onClick={() => startTransition(() => {router.push('/create')})}
                 className="px-8 py-4 bg-primary text-primary-foreground rounded-xl font-semibold text-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
               >
                 Create Interview
@@ -480,7 +525,15 @@ export default function AdminResults() {
         </div>
       )
     }
-    
+
     </div>
+  )
+}
+
+export default function AdminResults() {
+  return (
+    <ProtectedRoute adminOnly={true}>
+      <AdminResultsContent />
+    </ProtectedRoute>
   )
 }
