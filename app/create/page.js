@@ -63,7 +63,7 @@ function AdminPageContent() {
     return defaultQuestions.map((q, index) => ({
       short_name: generateShortName(q),
       question_text: q,
-      tags_questions: "check",
+      tags_questions: ["check"],
       position: index
     }))
   }
@@ -75,7 +75,7 @@ function AdminPageContent() {
       const newQuestion = {
         short_name: generateShortName(newQuestionText),
         question_text: newQuestionText.trim(),
-        tags_questions: "check",
+        tags_questions: ["check"],
         position: currentQuestions.length
       }
       setQuestionsConfig([...currentQuestions, newQuestion])
@@ -94,9 +94,10 @@ function AdminPageContent() {
   const toggleCritical = (index) => {
     const currentQuestions = questionsConfig.length > 0 ? questionsConfig : getDefaultQuestionsConfig()
     const newQuestions = [...currentQuestions]
+    const currentTag = newQuestions[index].tags_questions[0] // Get first tag from array
     newQuestions[index] = {
       ...newQuestions[index],
-      tags_questions: newQuestions[index].tags_questions === "check" ? "critical" : "check"
+      tags_questions: currentTag === "check" ? ["critical"] : ["check"] // Toggle between arrays
     }
     setQuestionsConfig(newQuestions)
   }
@@ -185,7 +186,7 @@ function AdminPageContent() {
         return
       }
 
-      const interviewId = interviewData.interview_id
+      const interviewId = interviewData.interview.id
       const link = interviewData.interviewUrl
 
       // STEP 2: Create questions with interview_id

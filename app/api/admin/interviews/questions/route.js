@@ -24,36 +24,29 @@ export async function POST(request) {
 
     // ✅ Step 2: Parse request body
     const {
-      jobTitle,
-      companyName,
-      analysisPrompts,
-      nextSteps,
-      timeLimit
+        interview_id,
+        questions
     } = await request.json()
 
     // ✅ Step 3: Validate required fields
-    if (!jobTitle || !companyName || !analysisPrompts) {
+    if (!interview_id || !questions || !Array.isArray(questions) || questions.length === 0) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
-    // ✅ Step 4: Generate unique session ID
-    const sessionId = `interview_${uuidv4()}`
-    console.log('Generated sessionId:', sessionId)
+    // ✅ Step 4: Prepare questions data for batch insert
+    const questionsToInsert = questions.map(q => ({
+      interview_id: interview_id,
+      short_name: q.short_name,
+      question_text: q.question_text,
+      position: q.position,
+      tags_questions: q.tags_questions
+    }))
 
     // ✅ Step 5: Insert into Supabase
     const { data, error } = await supabase
-      .from('interviews')
-      .insert({
-        session_id: sessionId,
-        job_title: jobTitle,
-        company_name: companyName,
-        analysis_prompts: analysisPrompts,
-        next_steps: nextSteps,
-        time_limit: timeLimit || 120,
-        created_by: user.id // Associate with current user (admin)
-      })
+      .from('interview_questions')
+      .insert(questionsToInsert)
       .select()
-      .single()
 
     if(error){
       console.error('Insert failed:', {
@@ -63,29 +56,26 @@ export async function POST(request) {
         code: error.code
       })
 
+
       return NextResponse.json(
           { error: 'Failed to create interview', details: error.message },
           { status: 500 }
         )
 
     }else{
-      console.log(' Interview inserted')
-      console.log('interview:', data)
+      console.log('Questions inserted')
+      console.log('Questions:', data)
     }
 
-    // ✅ Step 6: Construct public candidate link
-    const interviewUrl = `${process.env.NEXT_PUBLIC_APP_URL}/interview/${sessionId}`
-
-    // ✅ Step 7: Return response
+    // ✅ Step 6: Return response
     return NextResponse.json({
-      sessionId,
-      interviewUrl,
-      interview: data
+      questions: data,
+      count: data.length
     }, { status: 201 })
 
   } catch (error) {
-    console.error('Create interview error:', error)
-    return NextResponse.json({ error: 'Failed to create interview' }, { status: 500 })
+    console.error('Create questions error:', error)
+    return NextResponse.json({ error: 'Failed to create questions' }, { status: 500 })
   }
 
 }
