@@ -3,7 +3,7 @@
 'use client'
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { FaCog, FaPaperPlane, FaCamera, FaPlus, FaTimesCircle, FaExclamationTriangle, FaCheckCircle, FaUser, FaSignOutAlt } from 'react-icons/fa'
+import { FaCog, FaPaperPlane, FaCamera, FaPlus, FaTimesCircle, FaExclamationTriangle, FaCheckCircle, FaUser, FaSignOutAlt, FaStar } from 'react-icons/fa'
 import ProtectedRoute from '../../components/ProtectedRoute'
 import { useAuthContext } from '../../components/AuthProvider'
 import { supabaseClient } from '../../lib/authClient'
@@ -17,15 +17,16 @@ function AdminPageContent() {
   const [showSuccess, setShowSuccess] = useState(false)
   const [generatedLink, setGeneratedLink] = useState('')
   const [isPending, startTransition] = useTransition()
+  const [draggedIndex, setDraggedIndex] = useState(null)
   
   const [interviewConfig, setInterviewConfig] = useState({
     jobTitle: '',
     companyName: '',
-    questions: [],
     analysisPrompts: [],
     nextSteps: '',
     timeLimit: 120
   })
+  const [questionsConfig, setQuestionsConfig] = useState([])
 
   const defaultQuestions = [
     "Tell me about yourself and your professional background",
@@ -45,20 +46,94 @@ function AdminPageContent() {
     "Provide an overall recommendation (Hire/Maybe/Pass) with reasoning"
   ]
 
+  // Helper function to generate short_name from question text
+  const generateShortName = (questionText) => {
+    /* To use afterwards
+    if (!questionText) return "Background"
+    
+    const words = questionText.trim().split(' ')
+    if (words.length === 0) return "Background"
+  
+    return words.slice(0, 2).join(' ') || "Background"*/
+    return "Background"
+  }
+
+  // Initialize default questions in questionsConfig format
+  const getDefaultQuestionsConfig = () => {
+    return defaultQuestions.map((q, index) => ({
+      short_name: generateShortName(q),
+      question_text: q,
+      tags_questions: "check",
+      position: index
+    }))
+  }
+
   const addQuestion = () => {
-    const newQuestion = prompt("Enter new question:")
-    if (newQuestion && newQuestion.trim()) {
-      setInterviewConfig({
-        ...interviewConfig,
-        questions: [...(interviewConfig.questions.length > 0 ? interviewConfig.questions : defaultQuestions), newQuestion.trim()]
-      })
+    const newQuestionText = prompt("Enter new question:")
+    if (newQuestionText && newQuestionText.trim()) {
+      const currentQuestions = questionsConfig.length > 0 ? questionsConfig : getDefaultQuestionsConfig()
+      const newQuestion = {
+        short_name: generateShortName(newQuestionText),
+        question_text: newQuestionText.trim(),
+        tags_questions: "check",
+        position: currentQuestions.length
+      }
+      setQuestionsConfig([...currentQuestions, newQuestion])
     }
   }
 
   const removeQuestion = (index) => {
-    const currentQuestions = interviewConfig.questions.length > 0 ? interviewConfig.questions : defaultQuestions
-    const newQuestions = currentQuestions.filter((_, i) => i !== index)
-    setInterviewConfig({...interviewConfig, questions: newQuestions})
+    const currentQuestions = questionsConfig.length > 0 ? questionsConfig : getDefaultQuestionsConfig()
+    const newQuestions = currentQuestions
+      .filter((_, i) => i !== index)
+      .map((q, i) => ({ ...q, position: i }))
+    setQuestionsConfig(newQuestions)
+  }
+
+  // Toggle critical/check tag
+  const toggleCritical = (index) => {
+    const currentQuestions = questionsConfig.length > 0 ? questionsConfig : getDefaultQuestionsConfig()
+    const newQuestions = [...currentQuestions]
+    newQuestions[index] = {
+      ...newQuestions[index],
+      tags_questions: newQuestions[index].tags_questions === "check" ? "critical" : "check"
+    }
+    setQuestionsConfig(newQuestions)
+  }
+
+  // Drag and drop handlers
+  const handleDragStart = (e, index) => {
+    setDraggedIndex(index)
+    e.dataTransfer.effectAllowed = 'move'
+  }
+
+  const handleDragOver = (e, index) => {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+  }
+
+  const handleDrop = (e, dropIndex) => {
+    e.preventDefault()
+    if (draggedIndex === null || draggedIndex === dropIndex) return
+
+    const currentQuestions = questionsConfig.length > 0 ? questionsConfig : getDefaultQuestionsConfig()
+    const newQuestions = [...currentQuestions]
+    const draggedQuestion = newQuestions[draggedIndex]
+    
+    // Remove dragged item
+    newQuestions.splice(draggedIndex, 1)
+    // Insert at new position
+    newQuestions.splice(dropIndex, 0, draggedQuestion)
+    
+    // Update all positions
+    const reorderedQuestions = newQuestions.map((q, i) => ({ ...q, position: i }))
+    
+    setQuestionsConfig(reorderedQuestions)
+    setDraggedIndex(null)
+  }
+
+  const handleDragEnd = () => {
+    setDraggedIndex(null)
   }
 
   const handleLogout = async () => {
@@ -87,8 +162,8 @@ function AdminPageContent() {
         console.error("No session found!")
       return
   }
-
-      const response = await fetch('/api/admin/interviews/create', {
+      // STEP 1: Create interview without questions
+      const interviewResponse  = await fetch('/api/admin/interviews/create', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -97,26 +172,52 @@ function AdminPageContent() {
         body: JSON.stringify({
           jobTitle: interviewConfig.jobTitle,
           companyName: interviewConfig.companyName,
-          questions: interviewConfig.questions.length > 0 ? interviewConfig.questions : defaultQuestions,
           analysisPrompts: interviewConfig.analysisPrompts.length > 0 ? interviewConfig.analysisPrompts : defaultAnalysisPrompts,
           nextSteps: interviewConfig.nextSteps || "Thank you for completing the interview. We will review your responses and get back to you within 3-5 business days.",
           timeLimit: interviewConfig.timeLimit
         }),
       })
 
-      const data = await response.json()
-      if (response.ok) {
-        const link = data.interviewUrl
-        setGeneratedLink(link)
-        setShowSuccess(true)
-        
-        // Copy to clipboard
-        navigator.clipboard.writeText(link)
-         alert(`Interview link created and copied to clipboard!\n${link}`)
+      const interviewData = await interviewResponse.json()
 
-      } else {
-        alert('Error creating interview: ' + (data.error || 'Unknown error'))
+      if (!interviewResponse.ok) {
+        alert('Error creating interview: ' + (interviewData.error || 'Unknown error'))
+        return
       }
+
+      const interviewId = interviewData.interview_id
+      const link = interviewData.interviewUrl
+
+      // STEP 2: Create questions with interview_id
+      const finalQuestionsConfig = questionsConfig.length > 0 ? questionsConfig : getDefaultQuestionsConfig()
+      
+      const questionsResponse = await fetch('/api/admin/interviews/questions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({
+          interview_id: interviewId,
+          questions: finalQuestionsConfig
+        }),
+      })
+
+      const questionsData = await questionsResponse.json()
+
+      if (!questionsResponse.ok) {
+        alert('Interview created but error adding questions: ' + (questionsData.error || 'Unknown error'))
+        return
+      }
+
+      // Success!
+      setGeneratedLink(link)
+      setShowSuccess(true)
+
+      // Copy to clipboard
+      navigator.clipboard.writeText(link)
+      alert(`Interview link created and copied to clipboard!\n${link}`)
+
     } catch (error) {
       console.error('Error:', error)
       alert('Error creating interview. Please check your configuration.')
@@ -125,7 +226,7 @@ function AdminPageContent() {
     }
   }
 
-  const currentQuestions = interviewConfig.questions.length > 0 ? interviewConfig.questions : defaultQuestions
+  const currentQuestions = questionsConfig.length > 0 ? questionsConfig : getDefaultQuestionsConfig()
 
   return (
     <div className="min-h-screen gradient-bg">
@@ -266,13 +367,45 @@ function AdminPageContent() {
               
               <div className="space-y-3 max-h-96 overflow-y-auto">
                 {currentQuestions.map((question, index) => (
-                  <div key={index} className="group p-4 bg-muted/50 rounded-lg border border-border hover:border-primary/50 transition-all duration-200">
+                  <div 
+                    key={index}
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, index)}
+                    onDragOver={(e) => handleDragOver(e, index)}
+                    onDrop={(e) => handleDrop(e, index)}
+                    onDragEnd={handleDragEnd}
+                    className={`group p-4 bg-muted/50 rounded-lg border border-border hover:border-primary/50 transition-all duration-200  cursor-move ${
+                      draggedIndex === index ? 'opacity-50' : ''
+                    }`}
+                  >
                     <div className="flex items-start justify-between">
                       <div className="flex items-start space-x-3 flex-1">
                         <span className="inline-flex items-center justify-center w-6 h-6 bg-primary text-primary-foreground text-xs font-bold rounded-full flex-shrink-0 mt-1">
                           {index + 1}
                         </span>
-                        <span className="text-foreground font-medium">{question}</span>
+
+                        {/* Critical Star Button */}
+                        <button
+                          onClick={() => toggleCritical(index)}
+                          className={`flex-shrink-0 mt-1 transition-all duration-200 ${
+                            question.tags_questions === "critical"
+                              ? 'text-primary scale-110'
+                              : 'text-gray-300 hover:text-gray-400'
+                          }`}
+                          title={question.tags_questions === "critical" ? "Critical question" : "Regular question"}
+                        >
+                          <FaStar size={16} />
+                        </button>
+                        
+                        <div className="flex-1">
+                          <span className="text-foreground font-semibold">
+                            {question.short_name}
+                          </span>
+                          <span className="text-muted-foreground"> - </span>
+                          <span className="text-foreground">
+                            {question.question_text}
+                          </span>
+                        </div>
                       </div>
                       <button
                         onClick={() => removeQuestion(index)}
@@ -326,7 +459,10 @@ function AdminPageContent() {
                   <li>• Candidates will need camera and microphone access</li>
                   <li>• Each question has a time limit (default: 2 minutes)</li>
                   <li>• Videos are automatically processed and analyzed by AI</li>
-                  <li>• Results will be available in the admin dashboard</li>
+                  <li>• Drag and drop questions to reorder them</li>
+                  <li>• Click the star icon to mark questions as critical, they'll be giving more importance in the AI-analysis</li>
+                  <li>• You can review each candidates results by clicking in the top menu Review</li>
+                  <li>• All results reviewed or not will be available in your dashboard</li>
                 </ul>
               </div>
             </div>

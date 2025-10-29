@@ -1,3 +1,4 @@
+// For dashboard, not for the review.
 import { supabase } from '../../../../../lib/authServer.js'
 import { withAdminAuth } from '../../../../../lib/authMiddleware.js'
 import { NextResponse } from 'next/server'
@@ -22,6 +23,14 @@ async function getHandler(request, context) {
             .from('interviews')
             .select(`
                 *,
+                interview_questions (
+                    id,
+                    short_name,
+                    question_text,
+                    tags_questions,
+                    position,
+                    created_at
+                    ),
                 candidates (
                     id,
                     name,
@@ -31,11 +40,13 @@ async function getHandler(request, context) {
                     created_at,
                     responses (
                         id,
-                        question_index,
+                        interview_question_id,
                         video_url,
                         transcription,
                         ai_analysis,
-                        recorded_at
+                        recorded_at,
+                        tags_answers,
+                        notes
     
                     )
                 )
