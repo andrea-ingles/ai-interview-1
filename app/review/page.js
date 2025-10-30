@@ -17,6 +17,7 @@ function AdminResultsContent() {
   const [interviewCandidates, setInterviewCandidates] = useState([])
   const [interviewQuestions, setInterviewQuestions] = useState([])
   const [interviewData, setInterviewData] = useState(null)
+  const [interviewAnswers, setInterviewAnswers] = useState([])
   const [candidates, setCandidates] = useState([])  
   const [loading, setLoading] = useState(true)
   const [currentCandidateIndex, setCurrentCandidateIndex] = useState(0)
@@ -34,9 +35,9 @@ function AdminResultsContent() {
   const fetchResults = async () => {
     try {
       const { data: { session } } = await supabaseClient.auth.getSession()
-      console.log('session: ', session)
-      console.log('interview_id ', interviewId )
-      console.log('token: ', session.access_token)
+      //console.log('session: ', session)
+      //console.log('interview_id ', interviewId )
+      //console.log('token: ', session.access_token)
 
       // Fetch interview_candidates with related data
       const response = await fetch(`/api/admin/session-candidates?interview_id=${interviewId}`, {
@@ -57,6 +58,19 @@ function AdminResultsContent() {
         setInterviewQuestions(data.interviewQuestions || [])
         setInterviewData(data.interview)
         setCandidates(data.candidates || [])
+
+        // Group responses by interview_candidates_id
+        const responsesByInterviewCandidate = {}
+        data.responses?.forEach(response => {
+            //console.log('Response to be organized: ', response)
+            const interviewCandidateId = response.interview_candidate_id
+            if (!responsesByInterviewCandidate[interviewCandidateId]) {
+                responsesByInterviewCandidate[interviewCandidateId] = []
+            }
+            responsesByInterviewCandidate[interviewCandidateId].push(response)
+            })
+        setInterviewAnswers(responsesByInterviewCandidate || [])
+
       } else {
         const errorData = await response.json()
         console.error('Error fetching results:', errorData)
@@ -149,9 +163,10 @@ function AdminResultsContent() {
   }
 
   const getCurrentResponse = () => {
-    const currentInstance = interviewCandidates[currentCandidateIndex]
+    const currentInterviewCandidate = interviewCandidates[currentCandidateIndex]
     const currentQuestion = interviewQuestions.find(q => q.position === currentQuestionPosition)
-    return currentInstance?.responses?.find(r => r.interview_question_id === currentQuestion?.id)
+    const interviewCandidateResponses = interviewAnswers[currentInterviewCandidate?.id] || []
+    return interviewCandidateResponses.find(r => r.interview_question_id === currentQuestion?.id)
   }
 
   const getCurrentQuestion = () => {
@@ -218,12 +233,17 @@ function AdminResultsContent() {
                   <span className="text-muted-foreground">{currentCandidateIndex + 1} of {interviewCandidates.length}</span>
                   <span className="text-muted-foreground">·</span>
                   <span className={`px-3 py-1 rounded-full text-sm ${
-                    currentInstance.status === 'short' ? 'bg-green-100 text-green-800' :
-                    currentInstance.status === 'rejected' ? 'bg-red-100 text-red-800' :
-                    currentInstance.status === 'reviewed' ? 'bg-blue-100 text-blue-800' :
+                    currentInstance.status === 'completed' ? 'bg-gray-100 text-gray-700' :
+                    currentInstance.status === 'reviewing' ? 'bg-blue-100 text-blue-700' :
+                    currentInstance.status === 'reviewed' ? 'bg-purple-100 text-purple-700' :
                     'bg-yellow-100 text-yellow-800'
                   }`}>
-                    {currentInstance.status}
+                    {
+                    currentInstance.status === 'completed' ? 'Not reviewed yet' :
+                    currentInstance.status === 'reviewing' ? 'In progress' :
+                    currentInstance.status === 'reviewed' ? 'To reject/approve' :
+                    'status'
+                  }
                   </span>
                 </div>
 
@@ -340,6 +360,21 @@ function AdminResultsContent() {
             <div className="interview-card glass-effect p-6">
               <h2 className="text-xl font-bold text-foreground mb-4">AI Assessment</h2>
               {/* Placeholder for AI Assessment content */}
+              {isVideoContracted && (
+                  <div className="space-y-4">
+                    {currentResponse.transcription && (
+                      <div>
+                        <h5 className="font-semibold text-foreground mb-2">Transcription:</h5>
+                        <div className="p-4 bg-muted/30 rounded-lg border max-h-48 overflow-y-auto">
+                          <p className="text-foreground text-sm leading-relaxed">
+                            {currentResponse.transcription}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )
+              }
               <div className="text-muted-foreground text-center py-8">
                 AI Assessment content will appear here
               </div>

@@ -26,13 +26,21 @@ export async function POST(request) {
     const {
       jobTitle,
       companyName,
+      companyCulture,
       analysisPrompts,
+      keySkills,
       nextSteps,
       timeLimit
     } = await request.json()
 
     // ✅ Step 3: Validate required fields
-    if (!jobTitle || !companyName || !analysisPrompts) {
+    if (!jobTitle || !companyName || !analysisPrompts || !keySkills || !companyCulture) {
+      console.log('Required fields:')
+      console.log('Job title:', jobTitle)
+      console.log('Company name:', companyName)
+      console.log('Company culture:', companyCulture)
+      console.log('Analysis Prompts:', analysisPrompts)
+      console.log('Key skills:', keySkills)
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
@@ -41,21 +49,23 @@ export async function POST(request) {
     console.log('Generated sessionId:', sessionId)
 
     // ✅ Step 5: Insert into Supabase
-    const { data, error } = await supabase
+    const { data: interview, interviewError } = await supabase
       .from('interviews')
       .insert({
         session_id: sessionId,
         job_title: jobTitle,
         company_name: companyName,
+        company_culture: companyCulture,
         analysis_prompts: analysisPrompts,
+        key_skills: keySkills,
         next_steps: nextSteps,
         time_limit: timeLimit || 120,
-        created_by: user.id // Associate with current user (admin)
+        //created_by: user.id // Associate with current user (admin)
       })
       .select()
       .single()
 
-    if(error){
+    if(interviewError){
       console.error('Insert failed:', {
         message: error.message,
         hint: error.hint,
@@ -71,7 +81,7 @@ export async function POST(request) {
 
     }else{
       console.log(' Interview inserted')
-      console.log('interview:', data)
+      console.log('interview:', interview)
     }
 
     // ✅ Step 6: Construct public candidate link
@@ -81,7 +91,7 @@ export async function POST(request) {
     return NextResponse.json({
       sessionId,
       interviewUrl,
-      interview: data
+      interview: interview
     }, { status: 201 })
 
   } catch (error) {

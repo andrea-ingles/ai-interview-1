@@ -87,7 +87,7 @@ export async function PUT(request, { params }) {
     console.log('✅ Candidate created or updated:', candidate.name)
 
     //3. Create a new instance of interview_candidates
-    const { data, error: instanceError } = await supabase
+    const { data:interview_candidates, error: instanceError } = await supabase
       .from('interview_candidates')
       .insert({
         interview_id: interview.id,
@@ -103,15 +103,16 @@ export async function PUT(request, { params }) {
       return NextResponse.json({ error: instanceError.message }, { status: 400 })
     }
 
-    if (!data) {
+    if (!interview_candidates) {
       console.warn('⚠️ Candidate insert returned no data — possibly due to missing return preference.')
       return NextResponse.json({ message: 'Interview instance created (no data returned)' }, { status: 200 })
     }
 
     console.log('✅ Instance of interview with sessionId; ', sessionId, 'and created for: ', candidate.name)
+    console.log(interview_candidates)
 
 
-    return NextResponse.json({ candidate, data })
+    return NextResponse.json({ candidate, interview_candidates })
 
   } catch (error) {
     console.error('Update candidate error:', error)

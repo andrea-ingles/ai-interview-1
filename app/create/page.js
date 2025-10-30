@@ -22,7 +22,9 @@ function AdminPageContent() {
   const [interviewConfig, setInterviewConfig] = useState({
     jobTitle: '',
     companyName: '',
+    companyCulture: '',
     analysisPrompts: [],
+    keySkills: [],
     nextSteps: '',
     timeLimit: 120
   })
@@ -44,6 +46,19 @@ function AdminPageContent() {
     "Identify any red flags or concerns",
     "Summarize their key strengths",
     "Provide an overall recommendation (Hire/Maybe/Pass) with reasoning"
+  ]
+
+  const defaultkeySkills = [
+    "Communication & Clarity",
+    "Problem-Solving & Critical Thinking",
+    "Adaptability & Learning Agility",
+    "Teamwork & Collaboration",
+    "Technical Curiosity / Product Mindset",
+    "Motivation & Ownership",
+    "Culture & Values Fit",
+    "Resilience & Stress Management",
+    "Customer Orientation",
+    "Tech Industry Awareness"
   ]
 
   // Helper function to generate short_name from question text
@@ -162,7 +177,10 @@ function AdminPageContent() {
       if (!session) {
         console.error("No session found!")
       return
-  }
+      }
+
+      console.log('Default key Skills: ',defaultkeySkills)
+  
       // STEP 1: Create interview without questions
       const interviewResponse  = await fetch('/api/admin/interviews/create', {
         method: 'POST',
@@ -173,7 +191,9 @@ function AdminPageContent() {
         body: JSON.stringify({
           jobTitle: interviewConfig.jobTitle,
           companyName: interviewConfig.companyName,
+          companyCulture: interviewConfig.companyCulture,
           analysisPrompts: interviewConfig.analysisPrompts.length > 0 ? interviewConfig.analysisPrompts : defaultAnalysisPrompts,
+          keySkills: interviewConfig.keySkills.length > 0 ? interviewConfig.keySkills : defaultkeySkills,
           nextSteps: interviewConfig.nextSteps || "Thank you for completing the interview. We will review your responses and get back to you within 3-5 business days.",
           timeLimit: interviewConfig.timeLimit
         }),
@@ -302,6 +322,18 @@ function AdminPageContent() {
                 </div>
 
                 <div className="space-y-2">
+                  <label className="text-sm font-semibold text-foreground">
+                    Company Culture & Values
+                  </label>
+                  <textarea
+                    value={interviewConfig.companyCulture}
+                    onChange={(e) => setInterviewConfig({...interviewConfig, companyCulture: e.target.value})}
+                    className="w-full input-enhanced min-h-[90px] resize-none"
+                    placeholder="Describe the company's culture (e.g. ownership, innovation, transparency, speed...)"
+                  />
+                </div>
+
+                <div className="space-y-2">
                   <label className="text-sm font-semibold text-foreground">Time Limit per Question</label>
                   <div className="relative">
                     <input
@@ -405,7 +437,7 @@ function AdminPageContent() {
           <div className="mt-12 flex justify-center space-x-6">
             <button
               onClick={generateInterviewLink}
-              disabled={loading || !interviewConfig.jobTitle || !interviewConfig.companyName}
+              disabled={loading || !interviewConfig.jobTitle || !interviewConfig.companyName || !interviewConfig.companyCulture}
               className="inline-flex items-center px-8 py-4 bg-primary text-primary-foreground rounded-xl font-semibold shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none transform hover:scale-105 transition-all duration-200 text-lg"
             >
               {loading ? (

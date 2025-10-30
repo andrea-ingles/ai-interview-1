@@ -69,11 +69,31 @@ export async function GET(request, { params, user }) {
             return NextResponse.json({ error: 'Interview candidates not found with this interviewId ', interviewId }, {status: 404})
         }
 
-        console.log('Interview: ',interview)
-        console.log('Interview questions: ',interviewQuestions)
-        console.log('Interview instances: ',instances)
-        console.log('Canditates: ', candidates)
-        return NextResponse.json({ interview, interviewQuestions, instances, candidates })
+        // Get all responses for all interview_candidates in this interview
+        // with status: completed, reviewed, or reviewing
+        const { data: responses, errorResponse } = await supabase
+            .from('responses')
+            .select(`
+                *,
+                interview_candidates!inner(
+                id,
+                status,
+                interview_id
+                )
+            `)
+            .eq('interview_candidates.interview_id', interviewId)
+            .in('interview_candidates.status', ['completed', 'reviewed', 'reviewing'])
+
+        if (errorResponse || !responses) {
+            return NextResponse.json({ error: 'Interview candidates not found with this interviewId ', interviewId }, {status: 404})
+        }
+
+        //console.log('Interview: ',interview)
+        //console.log('Interview questions: ',interviewQuestions)
+        //console.log('Interview instances: ',instances)
+        //console.log('Canditates: ', candidates)
+        //console.log('Responses: ', responses)
+        return NextResponse.json({ interview, interviewQuestions, instances, candidates, responses })
 
         } catch (error) {
         console.error('Error fetching data:', error)

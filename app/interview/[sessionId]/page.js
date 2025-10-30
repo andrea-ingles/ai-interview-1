@@ -198,7 +198,7 @@ export default function InterviewPage() {
           sessionId,
           position,
           step: isLastQuestion ? 'complete' : 'interview',
-          interviewInstanceId,
+          interviewInstanceId
         }),
       })
 
@@ -212,7 +212,7 @@ export default function InterviewPage() {
         const formData = new FormData()
         formData.append('video', videoBlob)
         formData.append('sessionId', sessionId)
-        formData.append('questionIndex', questionIndex)
+        formData.append('questionIndex', position)
         formData.append('responseId', responseId)
         formData.append('candidateId', candidateId)
 
@@ -292,8 +292,8 @@ export default function InterviewPage() {
 
       const instance = await response.json()
       console.log('✅ Candidate saved:', instance.candidate)
-      console.log('Instance created: ', instance.data.id)
-      setInterviewInstanceId(instance.data.id)
+      console.log('Instance created: ', instance.interview_candidates.id)
+      setInterviewInstanceId(instance.interview_candidates.id)
 
       setStep('interview')  // Now proceed to interview
       
