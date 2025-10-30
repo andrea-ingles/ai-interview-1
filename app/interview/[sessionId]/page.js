@@ -13,6 +13,7 @@ export default function InterviewPage() {
   const videoRef = useRef(null)
   
   const [interview, setInterview] = useState(null)
+  const [interviewQuestions, setInterviewQuestions] = useState(null)
   const [loading, setLoading] = useState(true)
   const [currentQuestion, setCurrentQuestion] = useState(0)
   const [isRecording, setIsRecording] = useState(false)
@@ -30,6 +31,7 @@ export default function InterviewPage() {
   const [saving, setSaving] = useState(false)
   const [processingError, setProcessingError] = useState(null)
   const [isPending, startTransition] = useTransition();
+  const [interviewInstanceId, setInterviewInstanceId] = useState(null)
 
   // Timer effect
   useEffect(() => {
@@ -52,11 +54,6 @@ export default function InterviewPage() {
       setInterview({
         job_title: 'Demo Position',
         company_name: 'Demo Company',
-        questions: [
-          "Tell me about yourself",
-          "Why are you interested in this position?",
-          "What are your strengths?"
-        ],
         time_limit: 120,
         next_steps: "This is a demo interview. In a real interview, we would review your responses."
       })
@@ -70,6 +67,7 @@ export default function InterviewPage() {
       if (response.ok) {
         const data = await response.json()
         setInterview(data.interview)
+        setInterviewQuestions(data.interviewQuestions)
       } else {
         startTransition(() => {
           router.push('/')
@@ -179,7 +177,7 @@ export default function InterviewPage() {
     setTimer(0)
   }
 
-  const saveResponse = async (questionIndex, videoBlob) => {
+  const saveResponse = async (position, videoBlob) => {
     if (sessionId === 'demo') {
       console.log('Demo mode - skipping save')
       return
@@ -188,7 +186,7 @@ export default function InterviewPage() {
     try {
       setSaving(true)
 
-      const isLastQuestion = currentQuestion === interview.questions.length - 1;
+      const isLastQuestion = currentQuestion === interviewQuestions.length - 1;
       
       // Step 1: Create response record
       const response = await fetch('/api/responses/save', {
@@ -198,9 +196,9 @@ export default function InterviewPage() {
         },
         body: JSON.stringify({
           sessionId,
-          questionIndex,
-          candidateName: candidateInfo.name,
+          position,
           step: isLastQuestion ? 'complete' : 'interview',
+          interviewInstanceId,
         }),
       })
 
@@ -259,7 +257,7 @@ export default function InterviewPage() {
   }
 
   const nextQuestion = () => {
-    if (currentQuestion === interview.questions.length - 1) {
+    if (currentQuestion === interviewQuestions.length - 1) {
       setStep('complete')
     } else {
       setCurrentQuestion(currentQuestion + 1)
@@ -292,9 +290,11 @@ export default function InterviewPage() {
         throw new Error(`Failed to save candidate info: ${errorData.error}`)
       }
 
-      const data = await response.json()
-      console.log('✅ Candidate saved:', data.candidate)
-      
+      const instance = await response.json()
+      console.log('✅ Candidate saved:', instance.candidate)
+      console.log('Instance created: ', instance.data.id)
+      setInterviewInstanceId(instance.data.id)
+
       setStep('interview')  // Now proceed to interview
       
     } catch (error) {
@@ -409,7 +409,7 @@ export default function InterviewPage() {
                 <div className="bg-muted/50 p-4 rounded-lg border">
                   <h3 className="font-semibold text-foreground mb-2">Interview Details:</h3>
                   <ul className="text-sm text-muted-foreground space-y-1">
-                    <li>• {interview.questions.length} questions</li>
+                    <li>• {interviewQuestions.length} questions</li>
                     <li>• {Math.floor(interview.time_limit / 60)} minutes per question</li>
                     <li>• Camera and microphone required</li>
                     <li>• You can re-record if needed</li>
@@ -488,7 +488,7 @@ export default function InterviewPage() {
                   {interview.job_title} Interview
                 </h1>
                 <p className="text-muted-foreground">
-                  Question {currentQuestion + 1} of {interview.questions.length}
+                  Question {currentQuestion + 1} of {interviewQuestions.length}
                 </p>
               </div>
               
@@ -516,12 +516,12 @@ export default function InterviewPage() {
           <div className="mb-8">
             <div className="flex justify-between text-sm text-muted-foreground mb-2">
               <span>Progress</span>
-              <span>{Math.round(((currentQuestion + 1) / interview.questions.length) * 100)}%</span>
+              <span>{Math.round(((currentQuestion + 1) / interviewQuestions.length) * 100)}%</span>
             </div>
             <div className="w-full bg-muted rounded-full h-2">
               <div 
                 className="bg-primary h-2 rounded-full transition-all duration-300"
-                style={{ width: `${((currentQuestion + 1) / interview.questions.length) * 100}%` }}
+                style={{ width: `${((currentQuestion + 1) / interviewQuestions.length) * 100}%` }}
               ></div>
             </div>
           </div>
@@ -535,7 +535,7 @@ export default function InterviewPage() {
                 </span>
               </div>
               <h2 className="text-2xl font-bold text-foreground mb-4">
-                {interview.questions[currentQuestion]}
+                {interviewQuestions[currentQuestion]?.question_text}
               </h2>
               <p className="text-muted-foreground">
                 Please look at the camera and speak clearly. You have {Math.floor(interview.time_limit / 60)} minutes to answer.
@@ -605,7 +605,7 @@ export default function InterviewPage() {
                   onClick={nextQuestion}
                   className="inline-flex items-center px-8 py-4 bg-green-600 text-white rounded-xl font-semibold text-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
                 >
-                  {currentQuestion === interview.questions.length - 1 ? 'Complete Interview' : 'Next Question'}
+                  {currentQuestion === interviewQuestions.length - 1 ? 'Complete Interview' : 'Next Question'}
                   <FaArrowRight className="ml-3" size={20} />
                 </button>
               )}

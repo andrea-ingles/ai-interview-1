@@ -20,11 +20,10 @@ export async function POST(request) {
       .from('responses')
       .select(`
         *,
-        candidates (
-          interview_id,
-          interviews (
-            questions,
-            analysis_prompts
+        interview_questions (
+            *,
+            interviews (
+                analysis_prompts
           )
         )
       `)
@@ -64,9 +63,12 @@ export async function POST(request) {
     let analysis = response.ai_analysis
     if (!analysis && transcription) {
       console.log('Starting AI analysis...')
-      const interview = response.candidates.interviews
-      const question = interview.questions[response.question_index]
+      const interview = response.interview_questions.interviews
+      const question = response.interview_questions.question_text
       const analysisPrompts = interview.analysis_prompts
+
+      console.log('Now, to analyze question: ', question, '.')
+      console.log('Transcription is: ', transcription)
 
       const analyzeResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/responses/analyze`, {
         method: 'POST',

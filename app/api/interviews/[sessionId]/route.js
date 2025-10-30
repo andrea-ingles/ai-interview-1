@@ -25,7 +25,18 @@ export async function GET(request, { params, user }) {
         return NextResponse.json({ error: 'Interview not found' }, {status: 404})
       }
 
-      return NextResponse.json({ interview })
+      // Get interview questions configuration
+      const { data: interviewQuestions, errorQuestions } = await supabase
+        .from('interview_questions')
+        .select('*')
+        .eq('interview_id', interview.id)
+
+      if (errorQuestions || !interviewQuestions) {
+        return NextResponse.json({ error: 'Interview questions not found' }, {status: 404})
+      }
+
+
+      return NextResponse.json({ interview, interviewQuestions })
 
     } catch (error) {
       console.error('Get interview error:', error)
@@ -40,7 +51,7 @@ export async function PUT(request, { params }) {
     const { sessionId } = await params
     const { candidateName, candidateEmail, candidatePhone } = await request.json()
 
-    // Get interview
+    // 1. Get interview
     const { data: interview, error: interviewError } = await supabase
       .from('interviews')
       .select('id')
@@ -51,11 +62,10 @@ export async function PUT(request, { params }) {
       return NextResponse.json({ error: interviewError.message }, { status: 400 })
     }
 
-    // Create or update candidate
+    // 2. Create or update candidate
     const { data: candidate, error: candidateError } = await supabase
       .from('candidates')
       .upsert({
-        interview_id: interview.id,
         name: candidateName,
         email: candidateEmail,
         phone: candidatePhone
@@ -76,7 +86,32 @@ export async function PUT(request, { params }) {
 
     console.log('✅ Candidate created or updated:', candidate.name)
 
-    return NextResponse.json({ candidate })
+    //3. Create a new instance of interview_candidates
+    const { data, error: instanceError } = await supabase
+      .from('interview_candidates')
+      .insert({
+        interview_id: interview.id,
+        candidate_id: candidate.id,
+        status: "not_started"
+      })
+      .select()
+      .single()
+    
+
+    if (instanceError){
+      console.error('❌ Supabase insert error:', instanceError)
+      return NextResponse.json({ error: instanceError.message }, { status: 400 })
+    }
+
+    if (!data) {
+      console.warn('⚠️ Candidate insert returned no data — possibly due to missing return preference.')
+      return NextResponse.json({ message: 'Interview instance created (no data returned)' }, { status: 200 })
+    }
+
+    console.log('✅ Instance of interview with sessionId; ', sessionId, 'and created for: ', candidate.name)
+
+
+    return NextResponse.json({ candidate, data })
 
   } catch (error) {
     console.error('Update candidate error:', error)

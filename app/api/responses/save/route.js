@@ -9,12 +9,12 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 const supabase = createClient(supabaseUrl, supabaseAnonKey)*/
 
 // ✅ Helper: update candidate completion time
-async function markCandidateComplete(supabase, interviewId, candidateName) {
+async function markCandidateComplete(supabase, interviewId, candidateId) {
   return await supabase
-    .from('candidates')
+    .from('interview_candidates')
     .update({ completed_at: new Date().toISOString() })
     .eq('interview_id', interviewId)
-    .eq('name', candidateName)
+    .eq('candidate_id', candidateId)
     .select()
     .single()
 }
@@ -26,14 +26,33 @@ export async function POST(request) {
   try{
     console.log('💾 Save response endpoint called')
 
-    const { sessionId, questionIndex, candidateName, step } = await request.json()
-    console.log('📋 Save request params:', { sessionId, questionIndex, candidateName, step })
+    const { 
+        sessionId, 
+        position, 
+        step,
+        interviewInstanceId
+     } = await request.json()
+    console.log('📋 Save request params:', { sessionId, position, step, interviewInstanceId })
 
-    if (!sessionId || questionIndex === undefined) {
+    if (!sessionId || position === undefined) {
         return NextResponse.json({ error: 'Missing required fields' }, {status: 400})
     }
 
-    // Get interview and candidate
+    // Get instance of the interview and candidate.id
+    console.log('🔍 Getting instance of interview for interviewInstanceId:', interviewInstanceId)
+    const { data: instance, error: instanceError } = await supabase
+        .from('interview_candidates')
+        .select('candidate_id')
+        .eq('id', interviewInstanceId)
+        .single()
+
+    if (instanceError) {
+        console.log('❌ Instance not found:', instanceError)
+        return NextResponse.json({ error: 'Instance not found' }, {status: 404})
+    }
+
+
+    // Get interview
     console.log('🔍 Getting interview for sessionId:', sessionId)
     const { data: interview, error: interviewError } = await supabase
         .from('interviews')
@@ -46,7 +65,20 @@ export async function POST(request) {
         return NextResponse.json({ error: 'Interview not found' }, {status: 404})
     }
 
-    console.log('🔍 Getting candidate for interview:', interview.id)
+    // Get interview_questions
+    console.log('🔍 Getting interview questions for position ', position, 'and interview_id:', interview.id)
+    const { data: interviewQuestion, error: questionError } = await supabase
+        .from('interview_questions')
+        .select('id')
+        .eq('interview_id', interview.id)
+        .eq('position', position)
+        .single()
+
+    if (questionError) {
+        console.log('❌ Interview not found:', questionError)
+        return NextResponse.json({ error: 'Question not found' }, {status: 404})
+    }
+    /*console.log('🔍 Getting candidate for interview:', interview.id)
     const { data: candidate, error: candidateError } = await supabase
         .from('candidates')
         .select('id')
@@ -57,16 +89,17 @@ export async function POST(request) {
     if (candidateError) {
         console.log('❌ Candidate not found:', candidateError)
         return NextResponse.json({ error: 'Candidate not found' }, {status: 404})
-    }
+    }*/
 
     // Check if response already exists
     console.log('🔍 Checking for existing response...')
     const { data: existingResponse, error: checkError } = await supabase
         .from('responses')
         .select('id')
-        .eq('candidate_id', candidate.id)
-        .eq('question_index', questionIndex)
+        .eq('interview_question_id', interviewQuestion.id)
         .maybeSingle()
+    
+    if (checkError) throw checkError
 
     let response
 
@@ -92,8 +125,7 @@ export async function POST(request) {
         const { data: newResponse, error: insertError } = await supabase
             .from('responses')
             .insert({
-            candidate_id: candidate.id,
-            question_index: questionIndex,
+            interview_question_id: interviewQuestion.id,
             video_url: null, // Will be updated when video is uploaded
             recorded_at: new Date().toISOString()
             })
@@ -109,13 +141,13 @@ export async function POST(request) {
     // ✅ If interview is complete, update candidate completion timestamp
     if (step === 'complete') {
         console.log('⏰ Interview marked complete — updating candidate completion time...')
-        const { data: updatedCandidate, error: completionError } =
-            await markCandidateComplete(supabase, interview.id, candidateName)
+        const { data: updatedInstance, error: completionError } =
+            await markCandidateComplete(supabase, interview.id, instance.candidate_id)
 
         if (completionError) {
             console.error('❌ Failed to update candidate completion time:', completionError)
         } else {
-            console.log('✅ Candidate completion time updated at:', updatedCandidate.completed_at)
+            console.log('✅ Candidate completion time updated at:', updatedInstance.completed_at)
         }
     }
 
