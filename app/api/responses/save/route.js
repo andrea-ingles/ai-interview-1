@@ -12,7 +12,10 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey)*/
 async function markCandidateComplete(supabase, interviewId, candidateId) {
   return await supabase
     .from('interview_candidates')
-    .update({ completed_at: new Date().toISOString() })
+    .update({ 
+        completed_at: new Date().toISOString(),
+        status: 'completed'
+        })
     .eq('interview_id', interviewId)
     .eq('candidate_id', candidateId)
     .select()

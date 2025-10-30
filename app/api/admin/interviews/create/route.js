@@ -63,6 +63,7 @@ export async function POST(request) {
         code: error.code
       })
 
+
       return NextResponse.json(
           { error: 'Failed to create interview', details: error.message },
           { status: 500 }

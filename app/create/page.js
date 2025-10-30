@@ -7,7 +7,7 @@ import { FaCog, FaPaperPlane, FaCamera, FaPlus, FaTimesCircle, FaExclamationTria
 import ProtectedRoute from '../../components/ProtectedRoute'
 import { useAuthContext } from '../../components/AuthProvider'
 import { supabaseClient } from '../../lib/authClient'
-
+import Navigation from '../../components/Navigation'
 
 
 function AdminPageContent() {
@@ -168,7 +168,7 @@ function AdminPageContent() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
+          'authorization': `Bearer ${session.access_token}`
         },
         body: JSON.stringify({
           jobTitle: interviewConfig.jobTitle,
@@ -196,7 +196,7 @@ function AdminPageContent() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
+          'authorization': `Bearer ${session.access_token}`
         },
         body: JSON.stringify({
           interview_id: interviewId,
@@ -231,27 +231,7 @@ function AdminPageContent() {
 
   return (
     <div className="min-h-screen gradient-bg">
-      {/* Header with user info and logout */}
-      <div className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="flex justify-between items-center">
-            <h1 className="text-xl font-semibold text-gray-800">Create a new Interview</h1>
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center text-gray-600">
-                <FaUser className="w-4 h-4 mr-2" />
-                <span className="text-sm">{user?.email}</span>
-              </div>
-              <button
-                onClick={handleLogout}
-                className="flex items-center px-3 py-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <FaSignOutAlt className="w-4 h-4 mr-2" />
-                Logout
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
+      <Navigation />
 
       {/* Rest of your existing admin page content */}
       <div className="py-8 px-4">

@@ -31,7 +31,7 @@ function AdminResultsContent() {
 
       const response = await fetch('/api/admin/interviews', {
         headers: {
-          'Authorization': `Bearer ${session.access_token}`
+          'authorization': `Bearer ${session.access_token}`
         }
       })
 
