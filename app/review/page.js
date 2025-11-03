@@ -79,6 +79,7 @@ function AdminResultsContent() {
       setLocalOverall(parsed?.overallScore ?? null)
       setLocalSkills(parsed?.skillsEvaluation ? { ...parsed.skillsEvaluation } : null)
       setLocalNotes(currentInstance?.notes ?? '')
+      //console.log('AI analysis:', parsed)
     } else {
       setLocalOverall(null)
       setLocalSkills(null)
@@ -207,17 +208,22 @@ function AdminResultsContent() {
 
     interviewQuestions.forEach(question => {
       const currentInstance = interviewCandidates[currentCandidateIndex]
-      const response = currentInstance?.responses?.find(r => r.interview_question_id === question.id)
+      // ✅ Get the response for this specific question
+      const interviewCandidateResponses = interviewAnswers[currentInstance?.id] || []
+      const response = interviewCandidateResponses.find(r => r.interview_question_id === question.id)
       
       const hasCriticalTag = question.tags_questions?.includes('critical')
-      const hasFlaggedAnswer = response?.tags_answers?.includes('flagged')
+      const hasFlaggedAnswer = response?.ai_analysis?.redFlags && response.ai_analysis.redFlags.length > 0
+      //console.log('Question: ', question.question_text)
+      //console.log('Response: ', response)
+      //console.log('The answer has a redflag?: ', hasFlaggedAnswer)
 
       if (hasCriticalTag && hasFlaggedAnswer) {
         categories['Immediate attention'].push({ ...question, response })
       } else if (!hasCriticalTag && hasFlaggedAnswer) {
         categories['Flagged'].push({ ...question, response })
       } else if (hasCriticalTag && !hasFlaggedAnswer) {
-        categories['Critical'].push({ ...question, response })
+        categories['Critical'].push({ ...question, response})
       } else {
         categories['Quick check'].push({ ...question, response })
       }
@@ -473,7 +479,7 @@ function AdminResultsContent() {
                   <span>·</span>
                   <span>SF</span>
                   <span>·</span>
-                  <span className="text-green-600 font-semibold">87% match</span>
+                  <span className="text-green-600 font-semibold">{localOverall}% match</span>
                   <span>·</span>
                   <span className="text-blue-600 hover:underline cursor-pointer">LinkedIn</span>
                 </div>
