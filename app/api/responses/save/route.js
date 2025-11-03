@@ -53,13 +53,9 @@ async function markCandidateComplete(supabase, interviewId, jobTitle, jobCompany
     console.log('data formatted from responses: ', allAnalyses)
       
     // Analyze response with AI
-    let analysis = {}
     const overallAnalysis = await generateOverallAssessmentPersonalized(allAnalyses, candidateName, jobTitle, jobCompany, companyCulture, keySkills)
 
-    if (overallAnalysis?.analysis){
-        analysis = overallAnalysis.analysis
-        console.log('Overall AI analysis completed. Results:', overallAnalysis)
-    } else {
+    if (!overallAnalysis){
         console.log('Error: AI analysis failed')
     }
 
@@ -69,7 +65,7 @@ async function markCandidateComplete(supabase, interviewId, jobTitle, jobCompany
         .update({ 
             completed_at: new Date().toISOString(),
             status: 'completed',
-            overall_ai_analysis: analysis
+            overall_ai_analysis: overallAnalysis
             })
         .eq('interview_id', interviewId)
         .eq('candidate_id', candidateId)

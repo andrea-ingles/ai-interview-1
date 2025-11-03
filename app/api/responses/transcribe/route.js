@@ -1,5 +1,5 @@
 //file: app/api/transcribe/route.js
-import { transcribeAudio } from '../../../../lib/transcription.js'
+import { transcribeAndFormat } from '../../../../lib/transcription.js'
 import { supabase } from '../../../../lib/authServer.js'
 
 import { NextResponse } from 'next/server'
@@ -39,19 +39,25 @@ export async function POST(request) {
     })
 
     // 5. Transcribe audio
-    const transcription = await transcribeAudio(audioFile)
+    const {rawTranscription, formattedSegments} = await transcribeAndFormat(audioFile)
+    console.log('raw transcription: ', rawTranscription)
+    console.log('formatted transcription: ', formattedSegments.segments)
+
 
     // 6. Update response with transcription
     const { error } = await supabase
       .from('responses')
-      .update({ transcription })
+      .update({ 
+        transcription: rawTranscription,
+        formatted_segments: formattedSegments.segments })
       .eq('id', responseId)
 
     if (error) throw error
 
     return NextResponse.json({
       success: true,
-      transcription
+      rawTranscription,
+      formattedSegments
     }, {status: 200})
 
   } catch (error) {

@@ -1,4 +1,4 @@
-import { analyzeResponse } from '../../../../lib/ai-analysis.js'
+import { analyzeResponse, analyzeTranscriptionSegments } from '../../../../lib/ai-analysis.js'
 import { supabase } from '../../../../lib/authServer.js'
 
 import { NextResponse } from 'next/server'
@@ -12,26 +12,32 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey)*/
 // POST method - Update response with AI analysis
 export async function POST(request) {
   try{
-    const { responseId, transcription, question, analysisPrompts } = await request.json()
+    const { responseId, rawTranscription, formattedSegments, question, analysisPrompts } = await request.json()
 
-    if (!responseId || !transcription || !question || !analysisPrompts) {
+    if (!responseId || !rawTranscription || !formattedSegments || !question || !analysisPrompts) {
       return NextResponse.json({ error: 'Missing required fields' }, {status: 400})
     }
 
     // Analyze response with AI
-    const analysis = await analyzeResponse(transcription, question, analysisPrompts)
+    const analysis = await analyzeResponse(rawTranscription, question, analysisPrompts)
+
+    const formattedAnalysis = await analyzeTranscriptionSegments(rawTranscription, question, analysisPrompts, formattedSegments)
 
     // Update response with analysis
     const { error } = await supabase
       .from('responses')
-      .update({ ai_analysis: analysis })
+      .update({ 
+        ai_analysis: analysis,
+        formatted_segments: formattedAnalysis })
       .eq('id', responseId)
 
     if (error) throw error
 
+
     return NextResponse.json({
       success: true,
-      analysis
+      analysis,
+      formattedAnalysis
     }, {status: 200})
 
   } catch (error) {
