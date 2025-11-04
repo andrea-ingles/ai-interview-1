@@ -420,9 +420,18 @@ function AdminResultsContent() {
             <div className="flex items-start space-x-4">
               {/* Candidate Avatar */}
               <div className="flex-shrink-0">
-                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center">
-                  <FaUser className="text-white" size={32} />
-                </div>
+                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center overflow-hidden">
+                  {currentCandidate?.linkedin_profile?.picture ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img 
+                      src={currentCandidate.linkedin_profile.picture} 
+                      alt="LinkedIn profile"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <FaUser className="text-white" size={32} />
+                  )}
+                  </div>
               </div>
 
               {/* Candidate Info - 3 Rows */}

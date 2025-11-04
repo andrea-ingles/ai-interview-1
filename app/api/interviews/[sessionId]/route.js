@@ -49,7 +49,14 @@ export async function GET(request, { params, user }) {
 export async function PUT(request, { params }) {
   try {
     const { sessionId } = await params
-    const { candidateName, candidateEmail, candidatePhone } = await request.json()
+    const { 
+      candidateName, 
+      candidateEmail, 
+      candidatePhone,
+      linkedinProfile,
+      linkedinProfileLink,
+      cvParsed 
+    } = await request.json()
 
     // 1. Get interview
     const { data: interview, error: interviewError } = await supabase
@@ -68,7 +75,10 @@ export async function PUT(request, { params }) {
       .upsert({
         name: candidateName,
         email: candidateEmail,
-        phone: candidatePhone
+        phone: candidatePhone,
+        linkedin_profile: linkedinProfile,
+        linkedin_profile_link: linkedinProfileLink,
+        cv_data: cvParsed
       })
       .select()
       .maybeSingle()

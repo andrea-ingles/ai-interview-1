@@ -3,7 +3,7 @@
 'use client'
 import { useState, useRef, useEffect, useTransition } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { FaPlay, FaSquare, FaArrowRight, FaCheckCircle, FaCamera, FaClock, FaUser, FaEnvelope, FaPhone, FaBuilding } from 'react-icons/fa'
+import { FaPlay, FaSquare, FaArrowRight, FaCheckCircle, FaCamera, FaClock, FaUser, FaEnvelope, FaPhone, FaBuilding, FaLinkedin, FaFilePdf, FaFileUpload } from 'react-icons/fa'
 
 export default function InterviewPage() {
   const router = useRouter()
@@ -25,8 +25,14 @@ export default function InterviewPage() {
   const [candidateInfo, setCandidateInfo] = useState({
     name: '',
     email: '',
-    phone: ''
+    phone: '',
+    linkedinProfile: null, // Store LinkedIn profile data
+    linkedinProfileLink: null, // Store link of Linkedin profile
+    cvFile: null, // Store CV file
+    cvParsed: null // Store parsed CV data
   })
+  const [linkedinAuthInProgress, setLinkedinAuthInProgress] = useState(false)
+  const [isLinkedinAuthenticated, setIsLinkedinAuthenticated] = useState(false)
   const [step, setStep] = useState('info') // info, interview, complete
   const [saving, setSaving] = useState(false)
   const [processingError, setProcessingError] = useState(null)
@@ -60,6 +66,138 @@ export default function InterviewPage() {
       setLoading(false)
     }
   }, [sessionId])
+
+  // Handle auth errors from Linkedin sign-in
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search)
+    const authError = urlParams.get('auth_error')
+    
+    if (authError) {
+      setLinkedinAuthInProgress(false)
+      alert('LinkedIn authentication failed. Please try again.')
+      // Clean up URL
+      window.history.replaceState({}, document.title, window.location.pathname)
+    }
+  }, [])
+
+  useEffect(() => {
+    async function checkLinkedInSession() {
+      try {
+        const res = await fetch("/api/auth/me", { credentials: "include" })
+        if (res.ok) {
+          const data = await res.json()
+          setCandidateInfo(prev => ({
+            ...prev,
+            name: `${data.firstName} ${data.lastName}` || prev.name,
+            email: data.email || prev.email,
+            linkedinProfile: data.linkedinProfile,
+            linkedinProfileLink: `https://www.linkedin.com/in/${data.linkedinProfile?.sub || ''}`
+          }))
+          setIsLinkedinAuthenticated(true)
+        }
+      } catch (e) {
+        console.log("No LinkedIn session yet")
+      }
+    }
+
+    checkLinkedInSession()
+  }, [])
+
+  // Handle LinkedIn OAuth
+  const initiateLinkedInAuth = () => {
+    const clientId = process.env.NEXT_PUBLIC_LINKEDIN_CLIENT_ID
+    const redirectUri = `${window.location.origin}/api/auth/linkedin/callback`
+    const scope = 'openid profile email r_basicprofile'
+    const state = sessionId
+    
+    const authUrl = `https://www.linkedin.com/oauth/v2/authorization?` +
+    `response_type=code` +
+    `&client_id=${clientId}` + 
+    `&redirect_uri=${encodeURIComponent(redirectUri)}` +
+    `&state=${encodeURIComponent(state)}` +
+    `&scope=${encodeURIComponent(scope)}`
+    
+    setLinkedinAuthInProgress(true)
+    window.location.href = authUrl
+  }
+
+  // Handle LinkedIn callback
+  const handleLinkedInCallback = async (code) => {
+    try {
+      setLinkedinAuthInProgress(true)
+      
+      const response = await fetch('/api/auth/linkedin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          code, 
+          redirectUri: `${window.location.origin}/interview/${sessionId}` 
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error('LinkedIn authentication failed')
+      }
+
+      const data = await response.json()
+      
+      // Update candidate info with LinkedIn data
+      setCandidateInfo(prev => ({
+        ...prev,
+        name: `${data.profile.given_name} ${data.profile.family_name}`,
+        email: data.profile.email,
+        phone: data.profile.phone || prev.phone,
+        linkedinProfile: data.profile
+      }))
+      
+      setIsLinkedinAuthenticated(true)
+      
+      // Clean up URL
+      window.history.replaceState({}, document.title, window.location.pathname)
+      
+    } catch (error) {
+      console.error('LinkedIn auth error:', error)
+      alert('Failed to authenticate with LinkedIn. Please try again.')
+    } finally {
+      setLinkedinAuthInProgress(false)
+    }
+  }
+
+  // Handle CV upload
+  const handleCVUpload = async (event) => {
+    const file = event.target.files[0]
+    if (!file) return
+
+    if (file.type !== 'application/pdf') {
+      alert('Please upload a PDF file')
+      return
+    }
+
+    if (file.size > 10 * 1024 * 1024) { // 10MB limit
+      alert('File size must be less than 10MB')
+      return
+    }
+
+    setCandidateInfo(prev => ({ ...prev, cvFile: file }))
+
+    // Parse CV
+    try {
+      const formData = new FormData()
+      formData.append('cv', file)
+
+      const response = await fetch('/api/parse-cv', {
+        method: 'POST',
+        body: formData
+      })
+
+      if (response.ok) {
+        const parsed = await response.json()
+        setCandidateInfo(prev => ({ ...prev, cvParsed: parsed }))
+      }
+    } catch (error) {
+      console.error('CV parsing error:', error)
+    }
+  }
 
   const fetchInterview = async () => {
     try {
@@ -242,7 +380,7 @@ export default function InterviewPage() {
           }
         }).catch(error => {
           console.error('Background processing error:', error)
-          setProcessingError(errorData.error)
+          setProcessingError(error.message)
         })
  
       } else {
@@ -265,11 +403,17 @@ export default function InterviewPage() {
   }
 
   const startInterview = async () => {
+
+    if (!isLinkedinAuthenticated) {
+      alert('Please sign in with LinkedIn first')
+      return
+    }
+
     if (!candidateInfo.name || !candidateInfo.email) {
       alert('Please fill in your name and email')
       return
     }
-    // ADD THIS: Save candidate info to database
+    // Save candidate info to database
     try {
       setSaving(true)  // Show loading state
       
@@ -281,7 +425,10 @@ export default function InterviewPage() {
         body: JSON.stringify({
           candidateName: candidateInfo.name,
           candidateEmail: candidateInfo.email,
-          candidatePhone: candidateInfo.phone
+          candidatePhone: candidateInfo.phone,
+          linkedinProfile: candidateInfo.linkedinProfile,
+          linkedinProfileLink: candidateInfo.linkedinProfileLink,
+          cvParsed: candidateInfo.cvParsed
         }),
       })
 
@@ -358,71 +505,125 @@ export default function InterviewPage() {
                     Welcome to Your Video Interview
                   </h2>
                   <p className="text-muted-foreground">
-                    Please provide your information to get started
+                    Sign in with LinkedIn to get started
                   </p>
                 </div>
 
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <label className="text-sm font-semibold text-foreground flex items-center">
-                      <FaUser size={16} className="mr-2" />
-                      Full Name *
-                    </label>
-                    <input
-                      type="text"
-                      value={candidateInfo.name}
-                      onChange={(e) => setCandidateInfo({...candidateInfo, name: e.target.value})}
-                      className="w-full input-enhanced h-12"
-                      placeholder="Enter your full name"
-                    />
-                  </div>
+                {/* LinkedIn Authentication Button */}
+                {!isLinkedinAuthenticated && (
+                  <button
+                    onClick={initiateLinkedInAuth}
+                    disabled={linkedinAuthInProgress}
+                    className="w-full py-4 bg-[#0077B5] text-white rounded-xl font-semibold text-lg shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 transition-all duration-200 flex items-center justify-center space-x-3"
+                  >
+                    <FaLinkedin size={24} />
+                    <span>
+                      {linkedinAuthInProgress ? 'Authenticating...' : 'Sign in with LinkedIn'}
+                    </span>
+                  </button>
+                )}
 
-                  <div className="space-y-2">
-                    <label className="text-sm font-semibold text-foreground flex items-center">
-                      <FaEnvelope size={16} className="mr-2" />
-                      Email Address *
-                    </label>
-                    <input
-                      type="email"
-                      value={candidateInfo.email}
-                      onChange={(e) => setCandidateInfo({...candidateInfo, email: e.target.value})}
-                      className="w-full input-enhanced h-12"
-                      placeholder="Enter your email address"
-                    />
-                  </div>
+                {/* Show form only after LinkedIn auth */}
+                {isLinkedinAuthenticated && (
+                  <>
+                    <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                      <div className="flex items-center text-green-700">
+                        <FaCheckCircle className="mr-2" size={20} />
+                        <span className="font-semibold">LinkedIn Connected</span>
+                      </div>
+                    </div>
 
-                  <div className="space-y-2">
-                    <label className="text-sm font-semibold text-foreground flex items-center">
-                      <FaPhone size={16} className="mr-2" />
-                      Phone Number (Optional)
-                    </label>
-                    <input
-                      type="tel"
-                      value={candidateInfo.phone}
-                      onChange={(e) => setCandidateInfo({...candidateInfo, phone: e.target.value})}
-                      className="w-full input-enhanced h-12"
-                      placeholder="Enter your phone number"
-                    />
-                  </div>
-                </div>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <label className="text-sm font-semibold text-foreground flex items-center">
+                          <FaUser size={16} className="mr-2" />
+                          Full Name *
+                        </label>
+                        <input
+                          type="text"
+                          value={candidateInfo.name}
+                          onChange={(e) => setCandidateInfo({...candidateInfo, name: e.target.value})}
+                          className="w-full input-enhanced h-12"
+                          placeholder="Enter your full name"
+                        />
+                      </div>
 
-                <div className="bg-muted/50 p-4 rounded-lg border">
-                  <h3 className="font-semibold text-foreground mb-2">Interview Details:</h3>
-                  <ul className="text-sm text-muted-foreground space-y-1">
-                    <li>• {interviewQuestions.length} questions</li>
-                    <li>• {Math.floor(interview.time_limit / 60)} minutes per question</li>
-                    <li>• Camera and microphone required</li>
-                    <li>• You can re-record if needed</li>
-                  </ul>
-                </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-semibold text-foreground flex items-center">
+                          <FaEnvelope size={16} className="mr-2" />
+                          Email Address *
+                        </label>
+                        <input
+                          type="email"
+                          value={candidateInfo.email}
+                          onChange={(e) => setCandidateInfo({...candidateInfo, email: e.target.value})}
+                          className="w-full input-enhanced h-12"
+                          placeholder="Enter your email address"
+                        />
+                      </div>
 
-                <button
-                  onClick={startInterview}
-                  disabled={!candidateInfo.name || !candidateInfo.email}
-                  className="w-full py-4 bg-primary text-primary-foreground rounded-xl font-semibold text-lg shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 transition-all duration-200"
-                >
-                  Start Interview
-                </button>
+                      <div className="space-y-2">
+                        <label className="text-sm font-semibold text-foreground flex items-center">
+                          <FaPhone size={16} className="mr-2" />
+                          Phone Number
+                        </label>
+                        <input
+                          type="tel"
+                          value={candidateInfo.phone}
+                          onChange={(e) => setCandidateInfo({...candidateInfo, phone: e.target.value})}
+                          className="w-full input-enhanced h-12"
+                          placeholder="Enter your phone number"
+                        />
+                      </div>
+
+                      {/* CV Upload */}
+                      <div className="space-y-2">
+                        <label className="text-sm font-semibold text-foreground flex items-center">
+                          <FaFilePdf size={16} className="mr-2" />
+                          Upload CV (Optional)
+                        </label>
+                        <div className="relative">
+                          {/*onChange={handleCVUpload}*/}
+                          <input
+                            type="file"
+                            accept=".pdf"
+                            className="hidden"
+                            id="cv-upload"
+                          />
+                          <label
+                            htmlFor="cv-upload"
+                            className="w-full flex items-center justify-center px-4 py-3 border-2 border-dashed border-muted-foreground/30 rounded-lg cursor-pointer hover:border-primary hover:bg-primary/5 transition-colors"
+                          >
+                            <FaFileUpload className="mr-2" size={20} />
+                            <span>
+                              {candidateInfo.cvFile 
+                                ? candidateInfo.cvFile.name 
+                                : 'Click to upload PDF'}
+                            </span>
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="bg-muted/50 p-4 rounded-lg border">
+                      <h3 className="font-semibold text-foreground mb-2">Interview Details:</h3>
+                      <ul className="text-sm text-muted-foreground space-y-1">
+                        <li>• {interviewQuestions.length} questions</li>
+                        <li>• {Math.floor(interview.time_limit / 60)} minutes per question</li>
+                        <li>• Camera and microphone required</li>
+                        <li>• You can re-record if needed</li>
+                      </ul>
+                    </div>
+
+                    <button
+                      onClick={startInterview}
+                      disabled={!candidateInfo.name || !candidateInfo.email}
+                      className="w-full py-4 bg-primary text-primary-foreground rounded-xl font-semibold text-lg shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 transition-all duration-200"
+                    >
+                      {saving ? 'Saving...' : 'Start Interview'}
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           </div>
