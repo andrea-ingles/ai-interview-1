@@ -34,6 +34,7 @@ function AdminResultsContent() {
   const [localNotes, setLocalNotes] = useState('')
   const [showAllSkills, setShowAllSkills] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [navigationTab, setNavigationTab] = useState('questions')
 
   // UI states for AI-assesment and Video panel
   const videoRef = useRef(null)
@@ -570,78 +571,162 @@ function AdminResultsContent() {
               <div className="interview-card glass-effect p-6 flex flex-col"
                 style={{ height: rightHeight ? `${rightHeight}px` : "200px" }}
               >
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-xl font-bold text-foreground">Questions</h2>
-                  <div className="flex items-center space-x-2">
-                    <button 
-                      onClick={() => navigateQuestion(-1)}
-                      disabled={currentQuestionPosition === 1}
-                      className="p-2 hover:bg-muted rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <FaChevronLeft size={16} />
-                    </button>
-                    <button 
-                      onClick={() => navigateQuestion(1)}
-                      disabled={currentQuestionPosition === interviewQuestions.length}
-                      className="p-2 hover:bg-muted rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <FaChevronRight size={16} />
-                    </button>
+                <div className="flex items-center mb-4 border-b">
+                  <div className='flex flex-1'>
+                    <div className={`flex flex-1 items-center justify-between ${
+                      navigationTab === "questions" ? "border-b-2 border-primary" : ""
+                    }`}>
+                      {/* Left spacer to keep title centered */}
+                      <div className="flex-1"></div>
+                      <button
+                        onClick={() => setNavigationTab("questions")}
+                        className={`py-2 text-sm font-medium text-center ${
+                          navigationTab === "questions"
+                            ? "text-primary"
+                            : "text-muted-foreground hover:text-foreground"
+                        }`}
+                      >
+                        Questions
+                      </button>
+                      <div className="flex items-center space-x-2 flex-1 justify-end">
+                        {navigationTab === 'questions' && (
+                          <>
+                            <button 
+                              onClick={() => navigateQuestion(-1)}
+                              disabled={currentQuestionPosition === 1}
+                              className="p-2 hover:bg-muted rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              <FaChevronLeft size={16} />
+                            </button>
+                            <button 
+                              onClick={() => navigateQuestion(1)}
+                              disabled={currentQuestionPosition === interviewQuestions.length}
+                              className="p-2 hover:bg-muted rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              <FaChevronRight size={16} />
+                            </button>
+                          </>
+                        )}
+
+                      </div>
+                    </div>
+                    <div className="flex flex-1 justify-center">
+                      <button
+                        onClick={() => setNavigationTab("dimensions")}
+                        className={`flex-1 py-2 text-sm font-medium text-center ${
+                          navigationTab === "dimensions"
+                            ? "border-b-2 border-primary text-primary"
+                            : "text-muted-foreground hover:text-foreground"
+                        }`}
+                      >
+                        Overall skills
+                      </button>
+                    </div>
                   </div>
                 </div>
-
-                <div className={`space-y-4 overflow-y-auto`}>
-                  {Object.entries(categorizedQuestions).map(([category, questions]) => (
-                    questions.length > 0 && (
-                      <div key={category}>
-                        <div className="flex items-center space-x-2 mb-2 font-semibold text-foreground">
-                          {getCategoryIcon(category)}
-                          <span>{category}</span>
-                        </div>
-                        <div className="space-y-2 ml-6">
-                          {questions.map((q) => (
-                            <div 
-                              key={q.id}
-                              onClick={() => setCurrentQuestionPosition(q.position)}
-                              className={`flex items-start space-x-2 p-3 rounded-lg cursor-pointer transition-colors ${
-                                q.position === currentQuestionPosition 
-                                  ? 'bg-primary/10 border border-primary' 
-                                  : 'hover:bg-muted/50'
-                              }`}
-                            >
-                              <div
-                                onClick={(e) => {
-                                  e.stopPropagation() // ✅ prevents navigating when clicking icon
-                                  handleSaveToggle(q.position)
-                                }}
-                                className="mt-1 flex-shrink-0"
+                {navigationTab === 'questions' && (
+                
+                  <div className={`space-y-4 overflow-y-auto`}>
+                    {Object.entries(categorizedQuestions).map(([category, questions]) => (
+                      questions.length > 0 && (
+                        <div key={category}>
+                          <div className="flex items-center space-x-2 mb-2 font-semibold text-foreground">
+                            {getCategoryIcon(category)}
+                            <span>{category}</span>
+                          </div>
+                          <div className="space-y-2 ml-6">
+                            {questions.map((q) => (
+                              <div 
+                                key={q.id}
+                                onClick={() => setCurrentQuestionPosition(q.position)}
+                                className={`flex items-start space-x-2 p-3 rounded-lg cursor-pointer transition-colors ${
+                                  q.position === currentQuestionPosition 
+                                    ? 'bg-primary/10 border border-primary' 
+                                    : 'hover:bg-muted/50'
+                                }`}
                               >
-                                {isQuestionSaved(q.position) ? (
-                                  <FaCheck className="text-gray-800 mt-1 flex-shrink-0" size={14} />
-                                ) : (
-                                  <FaCircle className="text-gray-400 mt-1 flex-shrink-0" size={14} />
-                                )}
+                                <div
+                                  onClick={(e) => {
+                                    e.stopPropagation() // ✅ prevents navigating when clicking icon
+                                    handleSaveToggle(q.position)
+                                  }}
+                                  className="mt-1 flex-shrink-0"
+                                >
+                                  {isQuestionSaved(q.position) ? (
+                                    <FaCheck className="text-gray-800 mt-1 flex-shrink-0" size={14} />
+                                  ) : (
+                                    <FaCircle className="text-gray-400 mt-1 flex-shrink-0" size={14} />
+                                  )}
+                                </div>
+                                <div className="flex-1">
+                                  <div className="text-sm font-medium">{q.short_name || `Question ${q.position}`}</div>
+                                  <div className="text-xs text-muted-foreground line-clamp-2">{q.question_text}</div>
+                                </div>
                               </div>
-                              <div className="flex-1">
-                                <div className="text-sm font-medium">{q.short_name || `Question ${q.position}`}</div>
-                                <div className="text-xs text-muted-foreground line-clamp-2">{q.question_text}</div>
-                              </div>
-                            </div>
-                          ))}
+                            ))}
+                          </div>
                         </div>
-                      </div>
-                    )
-                  ))}
-                </div>
+                      )
+                    ))}
 
-                {!showAllQuestions && (
-                  <button 
-                    onClick={() => setShowAllQuestions(true)}
-                    className="mt-4 w-full py-2 text-sm text-primary hover:text-primary/80 font-medium"
-                  >
-                    View all
-                  </button>
+                  </div>
+  
                 )}
+                {navigationTab === 'dimensions' && (
+                  <div className="overflow-y-auto pr-2 h-full">
+                    {/* Skills list */}
+                    <div className="space-y-2">
+                      {localSkills ? (
+                        Object.entries(localSkills).map(([key, val]) => (
+                          <div key={key} className="flex items-center justify-between w-full">
+                            <div className="text-sm truncate max-w-[60%]">{key}</div>
+                            <div className="flex items-center space-x-2 group whitespace-nowrap">
+                              {editingSkillKey === key ? (
+                                <>
+                                  <input 
+                                    type="number" 
+                                    min={0} 
+                                    max={10} 
+                                    value={val} 
+                                    onChange={(e) => 
+                                      setLocalSkills(prev => ({ ...prev, [key]: e.target.value }))
+                                    } 
+                                    className="w-14 p-1 rounded border bg-card/5 text-sm text-center" 
+                                  />
+                                  <button 
+                                    onClick={() => handleSkillSave(key, localSkills[key])} 
+                                    className="text-sm px-2 py-1 rounded bg-primary text-primary-foreground"
+                                  >
+                                    Save
+                                  </button>
+                                  <button 
+                                    onClick={() => setEditingSkillKey(null)} 
+                                    className="text-sm px-2 py-1 rounded border"
+                                  >
+                                    Cancel
+                                  </button>
+                                </>
+                              ) : (
+                                <>
+                                  <div className="font-semibold">{val} /10</div>
+                                  <button 
+                                    onClick={() => setEditingSkillKey(key)} 
+                                    className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-muted/30"
+                                  >
+                                    <FaEdit size={14} />
+                                  </button>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        ))  
+                      ) : (
+                        <div className="text-sm text-muted-foreground">No AI analysis available</div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
               </div>
             </div>
             
