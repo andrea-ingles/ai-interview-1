@@ -1,7 +1,7 @@
 // file: app/review/page.js
 'use client'
 import { useState, useEffect, useTransition, useRef } from 'react'
-import { FaFileAlt, FaBrain, FaVideo, FaComment, FaCheckCircle, FaTimesCircle, FaClock, FaDownload, FaEye, FaCircle, FaDotCircle, FaSpinner, FaCheck, FaTimes, FaFire, FaExclamationTriangle, FaStar, FaChevronLeft, FaChevronRight, FaUser, FaEdit, FaQuestionCircle  } from 'react-icons/fa'
+import { FaFileAlt, FaBrain, FaVideo, FaComment, FaCheckCircle, FaTimesCircle, FaClock, FaDownload, FaEye, FaCircle, FaDotCircle, FaSpinner, FaCheck, FaTimes, FaFire, FaExclamationTriangle, FaStar, FaChevronLeft, FaChevronRight, FaUser, FaEdit, FaQuestionCircle, FaClipboardList  } from 'react-icons/fa'
 import { useRouter, useSearchParams } from 'next/navigation'
 import ProtectedRoute from '../../components/ProtectedRoute'
 import { useAuthContext } from '../../components/AuthProvider'
@@ -45,6 +45,10 @@ function AdminResultsContent() {
   const [transcriptionExpanded, setTranscriptionExpanded] = useState(false)
   const [transcriptionSearch, setTranscriptionSearch] = useState('')
   const segmentRefs = useRef([]);
+  const [videoHeight, setVideoHeight] = useState(600);
+  const AIPanelRef = useRef(null);
+  const VideoPanelRef = useRef(null);
+  const [rightHeight, setRightHeight] = useState(null);
 
   // Add helper function to format seconds to mm:ss
   const formatTime = (seconds) => {
@@ -86,6 +90,24 @@ function AdminResultsContent() {
       setLocalNotes(currentInstance?.notes ?? '')
     }
   }, [interviewCandidates, currentCandidateIndex])
+
+  useEffect(() => {
+    if (!videoRef.current || !showVideo) return;
+
+    const updateHeight = () => {
+      if (videoRef.current) {
+        setVideoHeight(videoRef.current.clientHeight || 600);
+      }
+    };
+    // Watch video size changes
+    const observer = new ResizeObserver(updateHeight);
+    observer.observe(videoRef.current);
+
+    // Also update whenever question changes
+    updateHeight();
+
+    return () => observer.disconnect();
+  }, [videoRef.current?.src]);
 
   
 
@@ -379,6 +401,31 @@ function AdminResultsContent() {
     }
   }, [currentResponse])
 
+  useEffect(() => {
+    const measurements = [100, 300, 500]; // Multiple measurement attempts
+    const timeouts = [];
+
+    measurements.forEach(delay => {
+      const id = setTimeout(() => {
+        if (showVideo && VideoPanelRef.current) {
+          const height = VideoPanelRef.current.scrollHeight;
+          console.log(`Measurement at ${delay}ms:`, height);
+          if (height > 250) {
+            setRightHeight(height);
+          }
+        } else if (!showVideo && AIPanelRef.current) {
+          const height = AIPanelRef.current.scrollHeight;
+          if (height > 200) {
+            setRightHeight(height);
+          }
+        }
+      }, delay);
+      timeouts.push(id);
+    });
+
+    return () => timeouts.forEach(clearTimeout);
+  }, [showVideo, currentResponse]);
+
   if (loading) {
     return (
       <div className="min-h-screen gradient-bg flex items-center justify-center">
@@ -417,73 +464,82 @@ function AdminResultsContent() {
         <div className="max-w-7xl mx-auto space-y-6">
           {/* Top Panel - Candidate Overview */}
           <div className="interview-card glass-effect p-6">
-            <div className="flex items-start space-x-4">
-              {/* Candidate Avatar */}
-              <div className="flex-shrink-0">
-                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center overflow-hidden">
-                  {currentCandidate?.linkedin_profile?.picture ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img 
-                      src={currentCandidate.linkedin_profile.picture} 
-                      alt="LinkedIn profile"
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <FaUser className="text-white" size={32} />
-                  )}
+            <div className="flex flex-col lg:flex-row lg:items-start gap-6 relative">
+              {/* Column 1: Avatar + Name/Status + Candidates List */}
+              <div className="flex gap-4 lg:w-100 flex-shrink-0">
+                {/* Candidate Avatar */}
+                <div className="flex-shrink-0">
+                  <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center overflow-hidden">
+                    {currentCandidate?.linkedin_profile?.picture ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img 
+                        src={currentCandidate.linkedin_profile.picture} 
+                        alt="LinkedIn profile"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <FaUser className="text-white" size={32} />
+                    )}
                   </div>
-              </div>
-
-              {/* Candidate Info - 3 Rows */}
-              <div className="flex-1 space-y-3">
-                {/* Row 1: Name, Position, Status */}
-                <div className="flex items-center space-x-2 text-lg font-semibold">
-                  <span>{currentCandidate.name || 'Unknown Candidate'}</span>
-                  <span className="text-muted-foreground">·</span>
-                  <span className="text-muted-foreground">{currentCandidateIndex + 1} of {interviewCandidates.length}</span>
-                  <span className="text-muted-foreground">·</span>
-                  <span className={`px-3 py-1 rounded-full text-sm ${
-                    currentInstance.status === 'completed' ? 'bg-gray-100 text-gray-700' :
-                    currentInstance.status === 'reviewing' ? 'bg-blue-100 text-blue-700' :
-                    currentInstance.status === 'reviewed' ? 'bg-purple-100 text-purple-700' :
-                    'bg-yellow-100 text-yellow-800'
-                  }`}>
-                    {
-                    currentInstance.status === 'completed' ? 'Not reviewed yet' :
-                    currentInstance.status === 'reviewing' ? 'In progress' :
-                    currentInstance.status === 'reviewed' ? 'To reject/approve' :
-                    'status'
-                  }
-                  </span>
                 </div>
-
-                {/* Row 2: List of Candidates with Status Icons */}
-                <div className="flex items-center space-x-3 overflow-x-auto pb-2">
-                  {interviewCandidates.slice(0, 8).map((ic, idx) => (
-                    <div 
-                      key={ic.id}
-                      onClick={() => setCurrentCandidateIndex(idx)}
-                      className={`flex items-center space-x-2 px-3 py-1 rounded-lg cursor-pointer transition-colors ${
-                        idx === currentCandidateIndex 
-                          ? 'bg-primary/10 border border-primary' 
-                          : 'hover:bg-muted/50'
-                      }`}
-                    >
-                      {getStatusIcon(ic.status)}
-                      <span className="text-sm whitespace-nowrap">
-                        {candidates.find((c) => c.id === ic?.candidate_id)?.name || 'Unknown'}
+                {/* Name, Status, and Candidates List */}
+                <div className="flex flex-col gap-3 flex-1 min-w-0">
+                  {/* Row 1: Name, Position, Status */}
+                  <div className="flex flex-col gap-2">
+                    <div className="flex items-center flex-wrap gap-2 text-lg font-semibold">
+                      <span>{currentCandidate.name || 'Unknown Candidate'}</span>
+                      <span className="text-muted-foreground">·</span>
+                      <span className="text-muted-foreground">{currentCandidateIndex + 1} of {interviewCandidates.length}</span>
+                      <span className="text-muted-foreground">·</span>
+                      <span className={`px-3 py-1 rounded-full text-sm self-start ${
+                        currentInstance.status === 'completed' ? 'bg-gray-100 text-gray-700' :
+                        currentInstance.status === 'reviewing' ? 'bg-blue-100 text-blue-700' :
+                        currentInstance.status === 'reviewed' ? 'bg-purple-100 text-purple-700' :
+                        'bg-yellow-100 text-yellow-800'
+                      }`}>
+                        {
+                        currentInstance.status === 'completed' ? 'Not reviewed yet' :
+                        currentInstance.status === 'reviewing' ? 'In progress' :
+                        currentInstance.status === 'reviewed' ? 'To reject/approve' :
+                        'status'
+                      }
                       </span>
                     </div>
-                  ))}
-                  {interviewCandidates.length > 8 && (
-                    <div className="text-sm text-muted-foreground whitespace-nowrap">
-                      ... +{interviewCandidates.length - 8}
-                    </div>
-                  )}
-                </div>
 
+                    {/* Row 2: List of Candidates with Status Icons */}
+                    <div className="flex items-center gap-2 overflow-x-auto pb-2">
+                      {interviewCandidates.slice(0, 8).map((ic, idx) => (
+                        <div 
+                          key={ic.id}
+                          onClick={() => setCurrentCandidateIndex(idx)}
+                          className={`flex items-center space-x-2 px-3 py-1 rounded-lg cursor-pointer transition-colors ${
+                            idx === currentCandidateIndex 
+                              ? 'bg-primary/10 border border-primary' 
+                              : 'hover:bg-muted/50'
+                          }`}
+                        >
+                          {getStatusIcon(ic.status)}
+                          <span className="text-sm whitespace-nowrap">
+                            {candidates.find((c) => c.id === ic?.candidate_id)?.name || 'Unknown'}
+                          </span>
+                        </div>
+                      ))}
+                      {interviewCandidates.length > 8 && (
+                        <div className="text-sm text-muted-foreground whitespace-nowrap">
+                          ... +{interviewCandidates.length - 8}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+              {/* Column 2: Empty spacer that shrinks (hidden on mobile) */}
+              <div className="hidden lg:block flex-1 min-w-0"></div>
+
+              {/* Column 3: Additional Info + Buttons */}
+              <div className="flex flex-col gap-4 lg:w-auto lg:min-w-[450px] flex-shrink-0">
                 {/* Row 3: Additional Candidate Info */}
-                <div className="flex items-center space-x-3 text-sm text-muted-foreground">
+                <div className="flex items-center flex-wrap gap-x-3 gap-y-2 text-sm text-muted-foreground justify-end">
                   <span>5 years</span>
                   <span>·</span>
                   <span>SF</span>
@@ -492,465 +548,510 @@ function AdminResultsContent() {
                   <span>·</span>
                   <span className="text-blue-600 hover:underline cursor-pointer">LinkedIn</span>
                 </div>
+                {/* Buttons */}
+                <div className="flex items-center gap-3 flex-wrap sm:flex-nowrap">
+                  <button onClick={() => handleDecisionClick('Shortlist')} className="flex-1 sm:w-36 py-2 rounded-lg bg-green-600 text-white font-semibold flex items-center justify-center space-x-2 hover:brightness-90 transition">
+                    <FaCheck /> <span>Shortlist</span>
+                  </button>
+                  <button onClick={() => handleDecisionClick('Review later')} className="flex-1 sm:w-36 py-2 rounded-lg bg-yellow-400 text-black font-semibold flex items-center justify-center space-x-2 hover:brightness-95 transition">
+                    <FaQuestionCircle /> <span>Review later</span>
+                  </button>
+                  <button onClick={() => handleDecisionClick('Reject')} className="flex-1 sm:w-36 py-2 rounded-lg bg-red-600 text-white font-semibold flex items-center justify-center space-x-2 hover:brightness-90 transition">
+                    <FaTimes /> <span>Reject</span>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-
           {/* Main Content Grid - 2x2 */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Top Left: Questions Panel */}
-            <div className="interview-card glass-effect p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-bold text-foreground">Questions</h2>
-                <div className="flex items-center space-x-2">
-                  <button 
-                    onClick={() => navigateQuestion(-1)}
-                    disabled={currentQuestionPosition === 1}
-                    className="p-2 hover:bg-muted rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <FaChevronLeft size={16} />
-                  </button>
-                  <button 
-                    onClick={() => navigateQuestion(1)}
-                    disabled={currentQuestionPosition === interviewQuestions.length}
-                    className="p-2 hover:bg-muted rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <FaChevronRight size={16} />
-                  </button>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Left: Questions Panel */}
+            <div className="flex flex-col lg:col-span-1">
+              <div className="interview-card glass-effect p-6 flex flex-col"
+                style={{ height: rightHeight ? `${rightHeight}px` : "200px" }}
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-bold text-foreground">Questions</h2>
+                  <div className="flex items-center space-x-2">
+                    <button 
+                      onClick={() => navigateQuestion(-1)}
+                      disabled={currentQuestionPosition === 1}
+                      className="p-2 hover:bg-muted rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <FaChevronLeft size={16} />
+                    </button>
+                    <button 
+                      onClick={() => navigateQuestion(1)}
+                      disabled={currentQuestionPosition === interviewQuestions.length}
+                      className="p-2 hover:bg-muted rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <FaChevronRight size={16} />
+                    </button>
+                  </div>
                 </div>
-              </div>
 
-              <div className={`space-y-4 ${!showAllQuestions ? 'max-h-96 overflow-y-auto' : ''}`}>
-                {Object.entries(categorizedQuestions).map(([category, questions]) => (
-                  questions.length > 0 && (
-                    <div key={category}>
-                      <div className="flex items-center space-x-2 mb-2 font-semibold text-foreground">
-                        {getCategoryIcon(category)}
-                        <span>{category}</span>
-                      </div>
-                      <div className="space-y-2 ml-6">
-                        {questions.map((q) => (
-                          <div 
-                            key={q.id}
-                            onClick={() => setCurrentQuestionPosition(q.position)}
-                            className={`flex items-start space-x-2 p-3 rounded-lg cursor-pointer transition-colors ${
-                              q.position === currentQuestionPosition 
-                                ? 'bg-primary/10 border border-primary' 
-                                : 'hover:bg-muted/50'
-                            }`}
-                          >
-                            <div
-                              onClick={(e) => {
-                                e.stopPropagation() // ✅ prevents navigating when clicking icon
-                                handleSaveToggle(q.position)
-                              }}
-                              className="mt-1 flex-shrink-0"
+                <div className={`space-y-4 overflow-y-auto`}>
+                  {Object.entries(categorizedQuestions).map(([category, questions]) => (
+                    questions.length > 0 && (
+                      <div key={category}>
+                        <div className="flex items-center space-x-2 mb-2 font-semibold text-foreground">
+                          {getCategoryIcon(category)}
+                          <span>{category}</span>
+                        </div>
+                        <div className="space-y-2 ml-6">
+                          {questions.map((q) => (
+                            <div 
+                              key={q.id}
+                              onClick={() => setCurrentQuestionPosition(q.position)}
+                              className={`flex items-start space-x-2 p-3 rounded-lg cursor-pointer transition-colors ${
+                                q.position === currentQuestionPosition 
+                                  ? 'bg-primary/10 border border-primary' 
+                                  : 'hover:bg-muted/50'
+                              }`}
                             >
-                              {isQuestionSaved(q.position) ? (
-                                <FaCheck className="text-gray-800 mt-1 flex-shrink-0" size={14} />
-                              ) : (
-                                <FaCircle className="text-gray-400 mt-1 flex-shrink-0" size={14} />
+                              <div
+                                onClick={(e) => {
+                                  e.stopPropagation() // ✅ prevents navigating when clicking icon
+                                  handleSaveToggle(q.position)
+                                }}
+                                className="mt-1 flex-shrink-0"
+                              >
+                                {isQuestionSaved(q.position) ? (
+                                  <FaCheck className="text-gray-800 mt-1 flex-shrink-0" size={14} />
+                                ) : (
+                                  <FaCircle className="text-gray-400 mt-1 flex-shrink-0" size={14} />
+                                )}
+                              </div>
+                              <div className="flex-1">
+                                <div className="text-sm font-medium">{q.short_name || `Question ${q.position}`}</div>
+                                <div className="text-xs text-muted-foreground line-clamp-2">{q.question_text}</div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )
+                  ))}
+                </div>
+
+                {!showAllQuestions && (
+                  <button 
+                    onClick={() => setShowAllQuestions(true)}
+                    className="mt-4 w-full py-2 text-sm text-primary hover:text-primary/80 font-medium"
+                  >
+                    View all
+                  </button>
+                )}
+              </div>
+            </div>
+            
+            {/* Right: AI + Video stacked */}
+            <div className="lg:col-span-2 flex flex-col gap-6 h-full">
+              {!showVideo && (
+                <>  
+                  {/* Top Right: AI Assessment Panel */}
+                  <div ref={AIPanelRef} className="interview-card glass-effect p-6">
+                    {/* Header: Title + AI Score & Confidence with Icons + Chevron */}
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center space-x-2">
+                        {/* Title */}
+                        <h2 className="text-xl font-bold text-foreground">AI Assessment</h2>
+
+                        {/* NEW — video icon triggers showVideo */}
+                        <button onClick={() => setShowVideo(true)} className="p-2 hover:bg-muted rounded-lg">
+                          <FaVideo size={16} />
+                        </button>
+                      </div>
+                      {currentResponse?.ai_analysis && (
+                        <div>
+                          {/* Row 1: AI Score & Confidence with Icons */}
+                          <div className="flex items-center justify-between flex-wrap gap-2">
+                            <div className="flex items-center space-x-3">
+                              <span className="text-sm text-muted-foreground">AI Score:</span>
+                              <span className="font-bold text-lg">{currentResponse.ai_analysis.overallScore || '—'}</span>
+                              <span className="text-muted-foreground">/10</span>
+                            </div>
+                            
+                            <div className="flex items-center space-x-2">
+                              {/* Red Flag Icon */}
+                              {currentResponse.ai_analysis.redFlags && currentResponse.ai_analysis.redFlags.length > 0 && (
+                                <div className="relative group">
+                                  <FaExclamationTriangle className="text-red-600" size={18} />
+                                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-black text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+                                    Red Flags
+                                  </div>
+                                </div>
+                              )}
+                              
+                              {/* Doubt Icon */}
+                              {currentResponse.ai_analysis.doubts && currentResponse.ai_analysis.doubts.length > 0 && (
+                                <div className="relative group">
+                                  <FaQuestionCircle className="text-yellow-600" size={18} />
+                                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-black text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+                                    Doubts
+                                  </div>
+                                </div>
+                              )}
+                              
+                              {/* Fact Plus Icon */}
+                              {segments?.some(seg => seg.factPlus && seg.factPlus.length > 0) && (
+                                <div className="relative group">
+                                  <FaCheckCircle className="text-green-600" size={18} />
+                                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-black text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+                                    Verified Facts
+                                  </div>
+                                </div>
+                              )}
+                              
+                              {/* Fact Minus Icon */}
+                              {segments?.some(seg => seg.factMinus && seg.factMinus.length > 0) && (
+                                <div className="relative group">
+                                  <FaTimesCircle className="text-orange-600" size={18} />
+                                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-black text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+                                    Contradictions
+                                  </div>
+                                </div>
                               )}
                             </div>
-                            <div className="flex-1">
-                              <div className="text-sm font-medium">{q.short_name || `Question ${q.position}`}</div>
-                              <div className="text-xs text-muted-foreground line-clamp-2">{q.question_text}</div>
+                            
+                            <div className="flex items-center space-x-2">
+                              <span className="text-sm text-muted-foreground">Confidence:</span>
+                              <span className="font-semibold">{currentResponse.ai_analysis.confidence || '—'}%</span>
                             </div>
                           </div>
-                        ))}
+                        </div>
+                      )}
+                    </div>
+                    {currentResponse?.ai_analysis ?  (
+                      <div className="space-y-4">
+
+                        {/* Row 1: Reasoning */}
+                        {currentResponse.ai_analysis.reasoning && (
+                          <div className="p-4 bg-muted/30 rounded-lg border">
+                            <p className="text-sm text-foreground leading-relaxed">
+                              {currentResponse.ai_analysis.reasoning}
+                            </p>
+                          </div>
+                        )}
+
+                        {/* Row 3: Verified Facts Toggle */}
+                        <div className="border rounded-lg">
+                          <button
+                            onClick={() => setShowVerifiedFacts(!showVerifiedFacts)}
+                            className="w-full flex items-center justify-between p-3 hover:bg-muted/30 transition-colors"
+                          >
+                            <span className="text-sm font-semibold text-foreground">
+                              Verified Facts (0)
+                            </span>
+                            <FaChevronRight 
+                              className={`transition-transform ${showVerifiedFacts ? 'rotate-90' : ''}`} 
+                              size={14} 
+                            />
+                          </button>
+                          
+                          {showVerifiedFacts && (
+                            <div className="p-4 border-t">
+                              <p className="text-sm text-muted-foreground">No verified facts available</p>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Row 4: Transcription with Key Moments (only if video contracted) */}
+                        {currentResponse.transcription && (
+                          <div className="border rounded-lg">
+
+                            {/* Header: Title + Search + Chevron */}
+                            <div className="w-full flex items-center justify-between p-3 hover:bg-muted/30 transition-colors">
+
+                              {/* Title */}
+                              <div
+                                className="flex items-center space-x-2 cursor-pointer"
+                                onClick={() => setShowTranscription(!showTranscription)}
+                              >
+                                <span className="text-sm font-semibold text-foreground">Transcription</span>
+                                <FaChevronRight 
+                                  className={`transition-transform ${showTranscription ? 'rotate-90' : ''}`} 
+                                  size={14} 
+                                />
+                              </div>
+
+                              {/* Search Bar */}
+                              <div className="relative w-48"
+                                onClick={(e) => e.stopPropagation()}   // ✅ prevent toggle when clicking search
+                              >
+                                <input
+                                  type="text"
+                                  placeholder="Search..."
+                                  value={transcriptionSearch}
+                                  onChange={(e) => setTranscriptionSearch(e.target.value)}
+                                  className="w-full px-3 py-1.5 pr-6 rounded-lg border bg-card/5 text-sm"
+                                />
+                                {transcriptionSearch && (
+                                  <button
+                                    onClick={() => setTranscriptionSearch('')}
+                                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                                  >
+                                    <FaTimes size={12} />
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                            
+                            {showTranscription && (
+                              <div className="p-4 border-t space-y-4">
+                                
+                                {/* Transcription Text */}
+                                <div className="relative">
+                                  <div className={`text-sm text-foreground leading-relaxed ${!transcriptionExpanded ? 'line-clamp-1' : ''}`}>
+                                    {highlightText(currentResponse.transcription, transcriptionSearch)}
+                                  </div>
+                                  {!transcriptionExpanded && (
+                                    <button
+                                      onClick={() => setTranscriptionExpanded(true)}
+                                      className="text-sm text-primary hover:underline mt-1"
+                                    >
+                                      Show more
+                                    </button>
+                                  )}
+                                  {transcriptionExpanded && (
+                                    <button
+                                      onClick={() => setTranscriptionExpanded(false)}
+                                      className="text-sm text-primary hover:underline mt-1"
+                                    >
+                                      Show less
+                                    </button>
+                                  )}
+                                </div>
+
+                                {/* Key Moments Timeline */}
+                                {segments && segments.length > 0 && (
+                                  <div>
+                                    <h5 className="text-sm font-semibold text-foreground mb-3">Key Moments</h5>
+                                    <div className="relative pl-6 space-y-3">
+                                      {/* Vertical timeline line */}
+                                      <div className="absolute left-2 top-2 bottom-2 w-0.5 bg-muted"></div>
+
+                                      
+                                      {segments.map((segment, idx) => (
+                                        <div key={idx} className="relative">
+                                          {/* Timeline dot */}
+                                          <div className="absolute -left-[22px] top-1 w-3 h-3 rounded-full bg-primary border-2 border-background"></div>
+                                        
+                                          
+                                          {/* Content */}
+                                          <div className="flex items-start space-x-2 text-sm">
+                                            <span className="text-muted-foreground font-mono text-xs whitespace-nowrap">
+                                              {formatTime(segment.start)}
+                                            </span>
+                                            
+                                            <div className="flex items-center space-x-1.5 flex-shrink-0">
+                                              {segment.redflag && (
+                                                <FaExclamationTriangle className="text-red-600" size={14} />
+                                              )}
+                                              {segment.doubt && (
+                                                <FaQuestionCircle className="text-yellow-600" size={14} />
+                                              )}
+                                              {segment.factPlus && segment.factPlus.length > 0 && (
+                                                <FaCheckCircle className="text-green-600" size={14} />
+                                              )}
+                                              {segment.factMinus && segment.factMinus.length > 0 && (
+                                                <FaTimesCircle className="text-orange-600" size={14} />
+                                              )}
+                                            </div>
+                                            
+                                            <span className="text-foreground flex-1">{segment.title}</span>
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  )
-                ))}
-              </div>
-
-              {!showAllQuestions && (
-                <button 
-                  onClick={() => setShowAllQuestions(true)}
-                  className="mt-4 w-full py-2 text-sm text-primary hover:text-primary/80 font-medium"
-                >
-                  View all
-                </button>
-              )}
-            </div>
-
-            {/* Top Right: AI Assessment Panel */}
-            <div className="interview-card glass-effect p-6">
-              <h2 className="text-xl font-bold text-foreground mb-4">AI Assessment</h2>
-              
-              {currentResponse?.ai_analysis ? (
-                <div className="space-y-4">
-                  {/* Row 1: AI Score & Confidence with Icons */}
-                  <div className="flex items-center justify-between flex-wrap gap-2">
-                    <div className="flex items-center space-x-3">
-                      <span className="text-sm text-muted-foreground">AI Score:</span>
-                      <span className="font-bold text-lg">{currentResponse.ai_analysis.overallScore || '—'}</span>
-                      <span className="text-muted-foreground">/10</span>
-                    </div>
-                    
-                    <div className="flex items-center space-x-2">
-                      {/* Red Flag Icon */}
-                      {currentResponse.ai_analysis.redFlags && currentResponse.ai_analysis.redFlags.length > 0 && (
-                        <div className="relative group">
-                          <FaExclamationTriangle className="text-red-600" size={18} />
-                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-black text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-                            Red Flags
-                          </div>
-                        </div>
-                      )}
-                      
-                      {/* Doubt Icon */}
-                      {currentResponse.ai_analysis.doubts && currentResponse.ai_analysis.doubts.length > 0 && (
-                        <div className="relative group">
-                          <FaQuestionCircle className="text-yellow-600" size={18} />
-                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-black text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-                            Doubts
-                          </div>
-                        </div>
-                      )}
-                      
-                      {/* Fact Plus Icon */}
-                      {segments?.some(seg => seg.factPlus && seg.factPlus.length > 0) && (
-                        <div className="relative group">
-                          <FaCheckCircle className="text-green-600" size={18} />
-                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-black text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-                            Verified Facts
-                          </div>
-                        </div>
-                      )}
-                      
-                      {/* Fact Minus Icon */}
-                      {segments?.some(seg => seg.factMinus && seg.factMinus.length > 0) && (
-                        <div className="relative group">
-                          <FaTimesCircle className="text-orange-600" size={18} />
-                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-black text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-                            Contradictions
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                    
-                    <div className="flex items-center space-x-2">
-                      <span className="text-sm text-muted-foreground">Confidence:</span>
-                      <span className="font-semibold">{currentResponse.ai_analysis.confidence || '—'}%</span>
-                    </div>
-                  </div>
-
-                  {/* Row 2: Reasoning */}
-                  {currentResponse.ai_analysis.reasoning && (
-                    <div className="p-4 bg-muted/30 rounded-lg border">
-                      <p className="text-sm text-foreground leading-relaxed">
-                        {currentResponse.ai_analysis.reasoning}
-                      </p>
-                    </div>
-                  )}
-
-                  {/* Row 3: Verified Facts Toggle */}
-                  <div className="border rounded-lg">
-                    <button
-                      onClick={() => setShowVerifiedFacts(!showVerifiedFacts)}
-                      className="w-full flex items-center justify-between p-3 hover:bg-muted/30 transition-colors"
-                    >
-                      <span className="text-sm font-semibold text-foreground">
-                        Verified Facts (0)
-                      </span>
-                      <FaChevronRight 
-                        className={`transition-transform ${showVerifiedFacts ? 'rotate-90' : ''}`} 
-                        size={14} 
-                      />
-                    </button>
-                    
-                    {showVerifiedFacts && (
-                      <div className="p-4 border-t">
-                        <p className="text-sm text-muted-foreground">No verified facts available</p>
+                    ) : (
+                      <div className="text-muted-foreground text-center py-8">
+                        No AI analysis available for this response
                       </div>
                     )}
                   </div>
-
-                  {/* Row 4: Transcription with Key Moments (only if video contracted) */}
-                  {showVideo && currentResponse.transcription && (
-                    <div className="border rounded-lg">
-
-                      {/* Header: Title + Search + Chevron */}
-                      <div className="w-full flex items-center justify-between p-3 hover:bg-muted/30 transition-colors">
-
-                        {/* Title */}
-                        <div
-                          className="flex items-center space-x-2 cursor-pointer"
-                          onClick={() => setShowTranscription(!showTranscription)}
-                        >
-                          <span className="text-sm font-semibold text-foreground">Transcription</span>
-                          <FaChevronRight 
-                            className={`transition-transform ${showTranscription ? 'rotate-90' : ''}`} 
-                            size={14} 
-                          />
-                        </div>
-
-                        {/* Search Bar */}
-                        <div className="relative w-48"
-                          onClick={(e) => e.stopPropagation()}   // ✅ prevent toggle when clicking search
-                        >
-                          <input
-                            type="text"
-                            placeholder="Search..."
-                            value={transcriptionSearch}
-                            onChange={(e) => setTranscriptionSearch(e.target.value)}
-                            className="w-full px-3 py-1.5 pr-6 rounded-lg border bg-card/5 text-sm"
-                          />
-                          {transcriptionSearch && (
-                            <button
-                              onClick={() => setTranscriptionSearch('')}
-                              className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                            >
-                              <FaTimes size={12} />
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                      
-                      {showTranscription && (
-                        <div className="p-4 border-t space-y-4">
-                          
-                          {/* Transcription Text */}
-                          <div className="relative">
-                            <div className={`text-sm text-foreground leading-relaxed ${!transcriptionExpanded ? 'line-clamp-1' : ''}`}>
-                              {highlightText(currentResponse.transcription, transcriptionSearch)}
-                            </div>
-                            {!transcriptionExpanded && (
-                              <button
-                                onClick={() => setTranscriptionExpanded(true)}
-                                className="text-sm text-primary hover:underline mt-1"
-                              >
-                                Show more
-                              </button>
-                            )}
-                            {transcriptionExpanded && (
-                              <button
-                                onClick={() => setTranscriptionExpanded(false)}
-                                className="text-sm text-primary hover:underline mt-1"
-                              >
-                                Show less
-                              </button>
-                            )}
-                          </div>
-
-                          {/* Key Moments Timeline */}
-                          {segments && segments.length > 0 && (
-                            <div>
-                              <h5 className="text-sm font-semibold text-foreground mb-3">Key Moments</h5>
-                              <div className="relative pl-6 space-y-3">
-                                {/* Vertical timeline line */}
-                                <div className="absolute left-2 top-2 bottom-2 w-0.5 bg-muted"></div>
-
-                                
-                                {segments.map((segment, idx) => (
-                                  <div key={idx} className="relative">
-                                    {/* Timeline dot */}
-                                    <div className="absolute -left-[22px] top-1 w-3 h-3 rounded-full bg-primary border-2 border-background"></div>
-                                  
-                                    
-                                    {/* Content */}
-                                    <div className="flex items-start space-x-2 text-sm">
-                                      <span className="text-muted-foreground font-mono text-xs whitespace-nowrap">
-                                        {formatTime(segment.start)}
-                                      </span>
-                                      
-                                      <div className="flex items-center space-x-1.5 flex-shrink-0">
-                                        {segment.redflag && (
-                                          <FaExclamationTriangle className="text-red-600" size={14} />
-                                        )}
-                                        {segment.doubt && (
-                                          <FaQuestionCircle className="text-yellow-600" size={14} />
-                                        )}
-                                        {segment.factPlus && segment.factPlus.length > 0 && (
-                                          <FaCheckCircle className="text-green-600" size={14} />
-                                        )}
-                                        {segment.factMinus && segment.factMinus.length > 0 && (
-                                          <FaTimesCircle className="text-orange-600" size={14} />
-                                        )}
-                                      </div>
-                                      
-                                      <span className="text-foreground flex-1">{segment.title}</span>
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="text-muted-foreground text-center py-8">
-                  No AI analysis available for this response
-                </div>
+                </>
               )}
-            </div>
 
-            {/* Bottom Left: Video Panel */}
-            <div className="interview-card glass-effect p-6">
+              {/* Bottom Riht: Video Panel */}
+              {showVideo && (
+                <div ref={VideoPanelRef} className="interview-card glass-effect p-6">
 
-              {/* Title + Chevron Row */}
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-bold text-foreground">Video</h2>
-                <FaChevronRight
-                  onClick={() => setShowVideo(prev => !prev)}
-                  className={`cursor-pointer transition-transform 
-                    ${!showVideo ? 'rotate-90' : '' }`}
-                  size={14}
-                />
-              </div>
-              
-              {currentResponse?.video_url ? (
-                showVideo  ? (
-                  <div className="flex items-center justify-center py-8 bg-muted/30 rounded-lg">
-                    <div className="text-center">
-                      <FaVideo className="text-muted-foreground mx-auto mb-2" size={32} />
-                      <p className="text-muted-foreground">Video duration: 2:34</p>
+                  {/* Title + Chevron Row */}
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center space-x-2">
+                      <h2 className="text-xl font-bold text-foreground">Video</h2>
+                      {/* NEW — assessment icon returns to AI */}
+                      <button onClick={() => setShowVideo(false)} className="p-2 hover:bg-muted rounded-lg">
+                        <FaClipboardList size={16} />
+                      </button>
                     </div>
                   </div>
-                ) : (
-                  <div className="relative group w-full">
-                    <video
-                      ref={videoRef}
-                      src={currentResponse.video_url}
-                      controls
-                      onTimeUpdate={() => setCurrentTime(videoRef.current.currentTime)}
-                      className="w-full rounded-lg bg-black"
-                    />
-
-                    {/* Overlay controls */}
-                    <div className="absolute inset-0 flex items-center justify-between px-3 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                      
-                      {/* Previous Mark */}
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          const prev = [...segments].reverse().find(s => s.start < currentTime)
-                          if (prev) videoRef.current.currentTime = prev.start
-                        }}
-                        className="pointer-events-auto bg-black/60 text-white px-2 py-1 rounded-full text-xs backdrop-blur-sm hover:bg-black/80"
-                      >
-                        ◀ Prev Mark
-                      </button>
-
-                      {/* Next Mark */}
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          const next = segments.find(s => s.start > currentTime)
-                          if (next) videoRef.current.currentTime = next.start
-                        }}
-                        className="pointer-events-auto bg-black/60 text-white px-2 py-1 rounded-full text-xs backdrop-blur-sm hover:bg-black/80"
-                      >
-                        Next Mark ▶
-                      </button>
-                    </div>
-                   
-
-                    <div className="relative w-full h-2 bg-gray-300 rounded-full my-2">
-                      {segments.map(s => (
-                        <div
-                          key={s.id}
-                          className="absolute w-2 h-2 rounded-full cursor-pointer"
-                          style={{
-                            left: `${(s.start / videoRef.current?.duration) * 100}%`,
-                            background: s.redflag
-                              ? "red"
-                              : s.factMinus?.length
-                              ? "orange"
-                              : s.doubt
-                              ? "yellow"
-                              : s.factPlus?.length
-                              ? "green"
-                              : "gray"
-                          }}
-                          onClick={() => videoRef.current.currentTime = s.start}
+                  
+                  {currentResponse?.video_url ? (  
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                      {/* Left: Video */}
+                      <div className="w-full h-full flex flex-col">
+                        <video
+                          ref={videoRef}
+                          src={currentResponse.video_url}
+                          controls
+                          onTimeUpdate={() => setCurrentTime(videoRef.current.currentTime)}
+                          className="w-full rounded-lg bg-black"
                         />
-                      ))}
-                    </div>
-                    
-                    {segments && segments.length > 0 && (
-                      <div>
-                        <h5 className="font-semibold text-foreground mb-2">Transcription:</h5>
-                        {currentSegment && (
-                          <p className="text-sm font-semibold text-primary mb-2">
-                            🎬 {currentSegment.title}
-                          </p>
-                        )}
-                        {/* Only show the current segment text */}
-                        <div className="p-2 bg-muted/30 rounded text-sm transition-opacity duration-200">
-                          {currentSegment ? currentSegment.text : "…"}
+
+                        {/* Overlay controls */}
+                        <div className="relative w-full h-2 flex items-center bg-gray-300 rounded-full my-2 px-3 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                          
+                          {/* Previous Mark */}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              const prev = [...segments].reverse().find(s => s.start < currentTime)
+                              if (prev) videoRef.current.currentTime = prev.start
+                            }}
+                            className="pointer-events-auto bg-black/60 text-white px-2 py-1 rounded-full text-xs backdrop-blur-sm hover:bg-black/80"
+                          >
+                            ◀ Prev Mark
+                          </button>
+
+                          {/* Next Mark */}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              const next = segments.find(s => s.start > currentTime)
+                              if (next) videoRef.current.currentTime = next.start
+                            }}
+                            className="pointer-events-auto bg-black/60 text-white px-2 py-1 rounded-full text-xs backdrop-blur-sm hover:bg-black/80"
+                          >
+                            Next Mark ▶
+                          </button>
                         </div>
+                      
+
+                        <div className="relative w-full h-2 bg-gray-300 rounded-full my-2">
+                          {segments.map(s => (
+                            <div
+                              key={s.id}
+                              className="absolute w-2 h-2 rounded-full cursor-pointer"
+                              style={{
+                                left: `${(s.start / videoRef.current?.duration) * 100}%`,
+                                background: s.redflag
+                                  ? "red"
+                                  : s.factMinus?.length
+                                  ? "orange"
+                                  : s.doubt
+                                  ? "yellow"
+                                  : s.factPlus?.length
+                                  ? "green"
+                                  : "gray"
+                              }}
+                              onClick={() => videoRef.current.currentTime = s.start}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                      {/* Right: Transcript + Key Moments */}
+                      <div className="relative pl-6 space-y-3 overflow-y-auto" 
+                                      style={{maxHeight: videoHeight  }}>
+
+                        {segments && segments.length > 0 && (
+                          <div>
+                            <h5 className="font-semibold text-foreground mb-2">Transcription:</h5>
+                            {currentSegment && (
+                              <p className="text-sm font-semibold text-primary mb-2">
+                                🎬 {currentSegment.title}
+                              </p>
+                            )}
+                            {/* Only show the current segment text */}
+                            <div className="p-2 bg-muted/30 rounded text-sm transition-opacity duration-200">
+                              {currentSegment ? currentSegment.text : "…"}
+                            </div>
+                          </div>
+                        )}
                         {/* Key Moments Timeline */}
                         <div>
                           {/*<h5 className="text-sm font-semibold text-foreground mb-3">Key Moments</h5> */}
-                          <div className="relative pl-6 space-y-3">
-                            {/* Vertical timeline line */}
-                            <div className="absolute left-2 top-2 bottom-2 w-0.5 bg-muted"></div>
+                          {segments.length > 0 ? (
+                            <div className="relative pl-6 space-y-4">
+                              {/* Vertical timeline line */}
+                              <div className="absolute left-2 top-0 bottom-0 w-[2px] bg-muted"></div>
+                              {segments.map((segment, idx) => (
+                                <div key={idx} className="relative">
 
-                            
-                            {segments.map((segment, idx) => (
-                              <div key={idx} className="relative">
-                                {/* Timeline dot */}
-                                <div className="absolute -left-[22px] top-1 w-3 h-3 rounded-full bg-primary border-2 border-background"></div>
+                                  {/* Timeline dot */}
+                                  <div className="absolute -left-5 top-1 w-3 h-3 rounded-full bg-primary border-2 border-background"></div>
                               
-                                
-                                {/* Content */}
-                                <div className="flex items-start space-x-2 text-sm">
-                                  <span className="text-muted-foreground font-mono text-xs whitespace-nowrap">
-                                    {formatTime(segment.start)}
-                                  </span>
-                                  
-                                  <div className="flex items-center space-x-1.5 flex-shrink-0">
-                                    {segment.redflag && (
-                                      <FaExclamationTriangle className="text-red-600" size={14} />
-                                    )}
-                                    {segment.doubt && (
-                                      <FaQuestionCircle className="text-yellow-600" size={14} />
-                                    )}
-                                    {segment.factPlus && segment.factPlus.length > 0 && (
-                                      <FaCheckCircle className="text-green-600" size={14} />
-                                    )}
-                                    {segment.factMinus && segment.factMinus.length > 0 && (
-                                      <FaTimesCircle className="text-orange-600" size={14} />
-                                    )}
+                                  {/* Content */}
+                                  <div className="flex items-start space-x-2 text-sm">
+                                    <span className="text-muted-foreground font-mono text-xs whitespace-nowrap">
+                                      {formatTime(segment.start)}
+                                    </span>
+                                    
+                                    <div className="flex items-center space-x-1.5 flex-shrink-0">
+                                      {segment.redflag && (
+                                        <FaExclamationTriangle className="text-red-600" size={14} />
+                                      )}
+                                      {segment.doubt && (
+                                        <FaQuestionCircle className="text-yellow-600" size={14} />
+                                      )}
+                                      {segment.factPlus && segment.factPlus.length > 0 && (
+                                        <FaCheckCircle className="text-green-600" size={14} />
+                                      )}
+                                      {segment.factMinus && segment.factMinus.length > 0 && (
+                                        <FaTimesCircle className="text-orange-600" size={14} />
+                                      )}
+                                    </div>
+                                    
+                                    <span
+                                      className="text-foreground flex-1 cursor-pointer hover:underline"
+                                      onClick={() => {
+                                        const video = videoRef.current;
+                                        video.currentTime = segment.start;
+                                        if (video.paused) video.play();
+                                      }}
+                                    >
+                                      {segment.title}
+                                    </span>
                                   </div>
-                                  
-                                  <span
-                                    className="text-foreground flex-1 cursor-pointer hover:underline"
-                                    onClick={() => {
-                                      const video = videoRef.current;
-                                      video.currentTime = segment.start;
-                                      if (video.paused) video.play();
-                                    }}
-                                  >
-                                    {segment.title}
-                                  </span>
                                 </div>
-                              </div>
-                            ))}
-                          </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-sm text-muted-foreground">No key moments detected</p>
+                          )}
                         </div>
                       </div>
-                    )}
-                  </div>
-                )
-              ) : (
-                <div className="text-center py-8 text-muted-foreground">
-                  No video available for this question
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-muted-foreground">
+                      No video available for this question
+                    </div>
+                  )}
                 </div>
               )}
             </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
 
-            {/* Bottom Right: Your Decision Panel */}
+
+            {/* Bottom Right: Your Decision Panel 
             <div className="interview-card glass-effect p-6">
               <h2 className="text-xl font-bold text-foreground mb-4">Your Decision</h2>
               <div className="space-y-4">
                 {/* Overall score row */}
-                <div className="flex items-center justify-between">
+                {/*<div className="flex items-center justify-between">
                   <div className="text-sm text-muted-foreground">Overall score:</div>
                   <div className="flex items-center space-x-2 group">
                     {editingScore ? (
@@ -978,11 +1079,11 @@ function AdminResultsContent() {
                 </div>
 
                 {/* Skills header */}
-                <div className="text-sm text-muted-foreground font-medium">Skills:</div>
+                {/*<div className="text-sm text-muted-foreground font-medium">Skills:</div>
 
 
                 {/* Skills list - show first 3 by default */}
-                <div className="space-y-2">
+                {/*<div className="space-y-2">
                   {localSkills ? (
                     Object.entries(localSkills).slice(0, showAllSkills ? undefined : 3).map(([key, val]) => (
                       <div key={key} className="flex items-center justify-between">
@@ -1018,7 +1119,7 @@ function AdminResultsContent() {
 
 
                   {/* Notes */}
-                  <div>
+                  {/*<div>
                     <div className="text-sm text-muted-foreground font-medium mb-2">Notes:</div>
                     <textarea
                       value={localNotes}
@@ -1032,19 +1133,9 @@ function AdminResultsContent() {
 
 
                   {/* Decision buttons */}
-                  <div>
+                  {/*<div>
                     <div className="text-sm text-muted-foreground font-medium mb-2">Decision:</div>
-                    <div className="flex items-center space-x-3">
-                      <button onClick={() => handleDecisionClick('Shortlist')} className="flex-1 py-2 rounded-lg bg-green-600 text-white font-semibold flex items-center justify-center space-x-2 hover:brightness-90 transition">
-                        <FaCheck /> <span>Shortlist</span>
-                      </button>
-                      <button onClick={() => handleDecisionClick('Review later')} className="flex-1 py-2 rounded-lg bg-yellow-400 text-black font-semibold flex items-center justify-center space-x-2 hover:brightness-95 transition">
-                        <FaQuestionCircle /> <span>Review later</span>
-                      </button>
-                      <button onClick={() => handleDecisionClick('Reject')} className="flex-1 py-2 rounded-lg bg-red-600 text-white font-semibold flex items-center justify-center space-x-2 hover:brightness-90 transition">
-                        <FaTimes /> <span>Reject</span>
-                      </button>
-                    </div>
+                    
                   </div>
 
                 {/* Action Buttons */}
@@ -1064,20 +1155,14 @@ function AdminResultsContent() {
                 </div>*/}
 
                 {/* Next candidate summary and view all status */}
-                <div className="text-sm text-muted-foreground">
+                {/*<div className="text-sm text-muted-foreground">
                   <div>Next: <span className="font-semibold">{nextCandidate ? (candidates.find(c => c.id === nextCandidate.candidate_id)?.name || 'Unknown') : 'None'}</span> ({numLeft} left)</div>
                   <button onClick={() => router.push('/results')} className="mt-2 text-sm text-primary hover:underline">View all status</button>
                 </div>
 
               </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
-
+            </div> */}
+          
 export default function AdminResults() {
   return (
     <ProtectedRoute adminOnly={true}>
