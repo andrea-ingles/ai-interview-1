@@ -182,7 +182,7 @@ export default function Login() {
         </form>
 
         <div className="mt-6 text-center">
-          <p className="text-gray-600 mb-4">Don't have an account?</p>
+          <p className="text-gray-600 mb-4">Don&apos;t have an account?</p>
           <button
             onClick={handleSignUp}
             disabled={loading || !formData.email || !formData.password}
