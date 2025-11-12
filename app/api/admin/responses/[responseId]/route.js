@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { withAdminAuth } from '../../../../../lib/authMiddleware.js'
 
 // GET method - Get all interviews (Admin-only)
 async function getHandler(request, { params, user }) {
