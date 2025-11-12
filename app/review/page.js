@@ -1249,7 +1249,7 @@ function AdminResultsContent() {
                 {unlockedSteps.includes('CULTURE') && visibleMessages.culture >= 1 && (
                   <div className="bg-transparent p-4 rounded-lg">
                     {interviewData.company_culture === "" ? (
-                      <p className="text-foreground text-base">The company culture wasn't filled in the interview setup.</p>
+                      <p className="text-foreground text-base">The company culture wasn&apos;t filled in the interview setup.</p>
                     ):(
                       
                       (() => {
