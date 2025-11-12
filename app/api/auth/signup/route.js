@@ -39,14 +39,14 @@ export async function POST(request) {
     }
 
     // Update user's app metadata to set role as admin
-    /*const { data: updateData, error: updateError } = await supabase.auth.admin.updateUserById(
+    {/*const { data: updateData, error: updateError } = await supabase.auth.admin.updateUserById(
       authData.user.id,
       {
         app_metadata: {
           role: 'admin'
         }
       }
-    )*/
+    )
 
     if (updateError) {
       console.error('Update error:', updateError)
@@ -58,7 +58,7 @@ export async function POST(request) {
         },
         { status: 500 }
       )
-    }
+    }*/}
 
     return NextResponse.json(
       {
