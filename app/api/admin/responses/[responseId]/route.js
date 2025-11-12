@@ -1,4 +1,3 @@
-import { supabase } from '../../../../../lib/database.js'
 import { NextResponse } from 'next/server'
 
 // GET method - Get all interviews (Admin-only)
