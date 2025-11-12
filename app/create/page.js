@@ -600,7 +600,7 @@ function AdminPageContent() {
         
                     <div className="bg-transparent p-4 rounded-lg">
                       {visibleMessages.setup >= 1 && (
-                        <p className="text-foreground text-base">Hi! Let's start configuring your interview.</p>
+                        <p className="text-foreground text-base">Hi! Let&apos;s start configuring your interview.</p>
                       )}
                       {visibleMessages.setup >= 2 && (
                         <p className="text-foreground text-base">Enter below the Job title, Company name and the next steps after the completion of the interview:</p>
@@ -659,7 +659,7 @@ function AdminPageContent() {
                 <div id="basic-panel" className="space-y-6">
                   {visibleMessages.basic >= 1 && (
                     <div className="bg-transparent p-4 rounded-lg">
-                      <p className="text-foreground text-base">Now, let's choose which basic questions do you want to check before entering to the main interview:</p>
+                      <p className="text-foreground text-base">Now, let&apos;s choose which basic questions do you want to check before entering to the main interview:</p>
                     </div>
                   )}
                   {visibleMessages.basic >= 2 && (

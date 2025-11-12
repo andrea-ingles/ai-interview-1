@@ -185,7 +185,7 @@ export default function InterviewPage() {
       const formData = new FormData()
       formData.append('cv', file)
 
-      const response = await fetch('/api/parse-cv', {
+      {/*const response = await fetch('/api/parse-cv', {
         method: 'POST',
         body: formData
       })
@@ -193,7 +193,7 @@ export default function InterviewPage() {
       if (response.ok) {
         const parsed = await response.json()
         setCandidateInfo(prev => ({ ...prev, cvParsed: parsed }))
-      }
+      }*/}
     } catch (error) {
       console.error('CV parsing error:', error)
     }

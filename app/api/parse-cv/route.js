@@ -1,5 +1,5 @@
 //file: app/api/parse-cv/route.js
-export const runtime = "nodejs";
+{/*export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 import { NextResponse } from 'next/server'
 
@@ -42,4 +42,4 @@ export async function POST(request) {
     console.error('CV parsing error:', error)
     return NextResponse.json({ error: 'Failed to parse CV' }, { status: 500 })
   }
-}
+}*/}
