@@ -34,14 +34,14 @@ export async function POST(request) {
     } = await request.json()
 
     // ✅ Step 3: Validate required fields
-    if (!jobTitle || !companyName || !analysisPrompts || !keySkills || !companyCulture) {
+    if (!jobTitle || !companyName || !analysisPrompts) {
       console.log('Required fields:')
       console.log('Job title:', jobTitle)
       console.log('Company name:', companyName)
       console.log('Company culture:', companyCulture)
       console.log('Analysis Prompts:', analysisPrompts)
       console.log('Key skills:', keySkills)
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
+      return NextResponse.json({ error: 'Missing required fields. Job title:' + jobTitle + '. Company: ' + companyName  + '. Culture: '+ companyCulture + '. Analysis: '+ analysisPrompts + '. Skills: ' + keySkills}, { status: 400 })
     }
 
     // ✅ Step 4: Generate unique session ID

@@ -12,14 +12,19 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey)*/
 // POST method - Update response with AI analysis
 export async function POST(request) {
   try{
-    const { responseId, rawTranscription, formattedSegments, question, analysisPrompts } = await request.json()
+    const { responseId, rawTranscription, formattedSegments, question, more, analysisPrompts } = await request.json()
 
     if (!responseId || !rawTranscription || !formattedSegments || !question || !analysisPrompts) {
       return NextResponse.json({ error: 'Missing required fields' }, {status: 400})
     }
 
-    // Analyze response with AI
-    const analysis = await analyzeResponse(rawTranscription, question, analysisPrompts)
+    let analysis
+    if (more){
+      // Analyze response with AI
+      analysis = await analyzeResponse(rawTranscription, question, more, analysisPrompts)
+    } else{
+      analysis = await analyzeResponse(rawTranscription, question, {}, analysisPrompts)
+    }
 
     const formattedAnalysis = await analyzeTranscriptionSegments(rawTranscription, question, analysisPrompts, formattedSegments)
 

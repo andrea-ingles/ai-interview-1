@@ -2,9 +2,18 @@
 'use client'
 import { useState, useEffect, useRef, useTransition } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
-import { FaHome, FaPlus, FaRegEdit, FaList, FaCog, FaKey, FaSignOutAlt, FaChevronDown } from 'react-icons/fa'
+import { 
+  FaCog,
+  FaKey,
+  FaSignOutAlt,
+  FaChevronRight
+} from 'react-icons/fa'
+import { TiThLargeOutline } from "react-icons/ti";
+import { FiEdit3, FiPlusCircle, FiSidebar, FiFolder  } from "react-icons/fi";
 import { useAuthContext } from './AuthProvider'
 import { supabaseClient } from '../lib/authClient'
+import Image from 'next/image';
+import Logo from "/app/assets/logo_no_background.png"
 
 export default function Navigation() {
   const router = useRouter()
@@ -12,6 +21,7 @@ export default function Navigation() {
   const { user } = useAuthContext()
   const [isPending, startTransition] = useTransition()
   
+  const [isExpanded, setIsExpanded] = useState(false)
   const [isAccountDropdownOpen, setIsAccountDropdownOpen] = useState(false)
   const [isReviewDropdownOpen, setIsReviewDropdownOpen] = useState(false)
   const [pendingReviews, setPendingReviews] = useState([])
@@ -106,153 +116,236 @@ export default function Navigation() {
 
   const isActive = (path) => pathname === path
 
+  const navItems = [
+    { 
+      id: 'home', 
+      icon: TiThLargeOutline, 
+      label: 'Home', 
+      path: '/homepage',
+      onClick: () => startTransition(() => router.push('/homepage'))
+    },
+    { 
+      id: 'create', 
+      icon: FiPlusCircle, 
+      label: 'Create', 
+      path: '/create',
+      onClick: () => startTransition(() => router.push('/create'))
+    },
+    { 
+      id: 'review', 
+      icon: FiEdit3, 
+      label: 'Review', 
+      path: '/review',
+      hasDropdown: true,
+      onClick: () => setIsReviewDropdownOpen(!isReviewDropdownOpen)
+    },
+    { 
+      id: 'interviews', 
+      icon: FiFolder , 
+      label: 'My Interviews', 
+      path: '/dashboard',
+      onClick: () => startTransition(() => router.push('/dashboard'))
+    },
+  ]
+
   return (
-    <nav className="bg-white border-b sticky top-0 z-50">
-      <div className="max-w-7xl mx-auto px-4">
-        <div className="flex justify-between items-center h-14">
-          {/* Logo */}
-          <div className="flex items-center">
-            <div className="w-9 h-9 bg-gradient-to-br from-pink-400 to-pink-500 rounded-lg flex items-center justify-center shadow-sm cursor-pointer"
-                 onClick={() => startTransition(() => router.push('/homepage'))}>
-              <span className="text-white font-bold text-xs">AI</span>
+    <aside 
+      className={`bg-muted/70 flex flex-col transition-all duration-300 ease-out ${
+        isExpanded ? 'w-64' : 'w-16'
+      }`}
+    >
+      {/* Logo/Toggle Button */}
+      <div className="relative h-16 flex items-center justify-between px-3 group">
+        {/* Left: Logo when expanded */}
+        {isExpanded ? (
+          <div className="flex items-center gap-3 cursor-pointer group/logo"
+            onClick={() => setIsExpanded(false)}
+          >
+            <div className="relative w-8 h-8 flex items-center justify-center rounded-lg transition-all">
+              <Image 
+              src={Logo}
+              className="object-contain relative -translate-y-1" 
+              width={30} 
+              height={30}
+              alt="Toggle sidebar" />
+              
             </div>
+            <span className="font-bold text-lg text-foreground">Prescrin</span>
           </div>
+        ) : (
+          <div
+            onClick={() => setIsExpanded(true)}
+            className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-muted transition-all duration-150 group/logo"
+            title="Expand sidebar"
+          >
+            <FiSidebar className="hidden group-hover/logo:block text-muted-foreground group-hover:text-foreground transition-colors rotate-180 " size={20} />
+            <Image 
+              src={Logo}
+              className="group-hover/logo:hidden text-white object-contain relative -translate-y-1" 
+              width={30} 
+              height={30}
+              alt="Toggle sidebar" />
+          </div>
+        )}
 
-          {/* Navigation Menu */}
-          <div className="flex items-center gap-1">
+        {/* Right: Collapse icon when expanded */}
+        {isExpanded && (
+          <button
+            onClick={() => setIsExpanded(false)}
+            className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-muted transition-colors"
+            title="Collapse sidebar"
+          >
+            <FiSidebar className="text-muted-foreground group-hover:text-foreground" size={20} />
+          </button>
+        )}
+        
+        {/* Tooltip for collapsed state */}
+        {!isExpanded && (
+          <div className="absolute left-full ml-2 px-3 py-1.5 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
+            Toggle sidebar
+          </div>
+        )}
+      </div>
+
+      {/* Navigation Items */}
+      <nav className="flex-1 p-2 space-y-1">
+        {navItems.map((item) => (
+          <div key={item.id} className="relative">
             <button
-              onClick={() => startTransition(() => router.push('/homepage'))}
-              className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                isActive('/homepage')
-                  ? 'bg-gray-100 text-gray-900'
-                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+              onClick={item.onClick}
+              className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg transition-all duration-150 group relative ${
+                isActive(item.path)
+                  ? 'bg-primary/10 text-primary' 
+                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
               }`}
             >
-              <FaHome className="w-4 h-4" />
-              <span className="hidden md:inline">Home</span>
+              <item.icon size={20} className="flex-shrink-0" />
+              {isExpanded && (
+                <span className="font-medium text-sm">{item.label}</span>
+              )}
+              {isExpanded && item.hasDropdown && (
+                <FaChevronRight 
+                  size={12} 
+                  className={`ml-auto transition-transform ${isReviewDropdownOpen ? 'rotate-90' : ''}`}
+                />
+              )}
+              
+              {/* Tooltip for collapsed state */}
+              {!isExpanded && (
+                <div className="absolute left-full ml-2 px-3 py-1.5 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
+                  {item.label}
+                </div>
+              )}
             </button>
 
-            <button
-              onClick={() => startTransition(() => router.push('/create'))}
-              className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                isActive('/create')
-                  ? 'bg-gray-100 text-gray-900'
-                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-              }`}
-            >
-              <FaPlus className="w-4 h-4" />
-              <span className="hidden md:inline">Create</span>
-            </button>
-
-            {/* Review Dropdown */}
-            <div className="relative" ref={reviewDropdownRef}>
-              <button
-                onClick={() => setIsReviewDropdownOpen(!isReviewDropdownOpen)}
-                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  isActive('/review')
-                    ? 'bg-gray-100 text-gray-900'
-                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                }`}
+            {/* Review Dropdown - appears to the right when collapsed, below when expanded */}
+            {item.id === 'review' && isReviewDropdownOpen && (
+              <div 
+                ref={reviewDropdownRef}
+                className={`absolute ${
+                  isExpanded 
+                    ? 'left-0 top-full mt-1 w-full' 
+                    : 'left-full top-0 ml-2 w-80'
+                } bg-card border border-border rounded-lg shadow-lg py-2 z-50 animate-fade-in`}
               >
-                <FaRegEdit className="w-4 h-4" />
-                <span className="hidden md:inline">Review</span>
-                <FaChevronDown className={`w-3 h-3 transition-transform ${isReviewDropdownOpen ? 'rotate-180' : ''}`} />
-              </button>
-
-              {/* Review Dropdown Menu */}
-              {isReviewDropdownOpen && (
-                <div className="absolute left-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 py-2 animate-slide-down z-50">
-                  {loadingReviews ? (
-                    <div className="px-4 py-6 text-center text-sm text-gray-500">
-                      Loading interviews...
+                {loadingReviews ? (
+                  <div className="px-4 py-6 text-center text-sm text-muted-foreground">
+                    Loading interviews...
+                  </div>
+                ) : pendingReviews.length === 0 ? (
+                  <div className="px-4 py-6 text-center text-sm text-muted-foreground">
+                    No interviews pending review
+                  </div>
+                ) : (
+                  <>
+                    <div className="px-4 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                      Pending Reviews
                     </div>
-                  ) : pendingReviews.length === 0 ? (
-                    <div className="px-4 py-6 text-center text-sm text-gray-500">
-                      No interviews pending review
-                    </div>
-                  ) : (
-                    <>
-                      <div className="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                        Pending Reviews
-                      </div>
+                    <div className="max-h-64 overflow-y-auto custom-scrollbar">
                       {pendingReviews.map((interview) => (
                         <button
                           key={interview.id}
                           onClick={() => handleReviewClick(interview.id)}
-                          className="w-full flex flex-col gap-1 px-4 py-3 text-left hover:bg-gray-50 transition-colors"
+                          className="w-full flex flex-col gap-1 px-4 py-3 text-left hover:bg-muted/50 transition-colors rounded-lg"
                         >
-                          <div className="text-sm font-medium text-gray-900">
+                          <div className="text-sm font-medium text-foreground">
                             {interview.job_title} at {interview.company_name}
                           </div>
-                          <div className="text-xs text-gray-500">
+                          <div className="text-xs text-muted-foreground">
                             {interview.pending_count} candidate{interview.pending_count !== 1 ? 's' : ''} pending review
                           </div>
                         </button>
                       ))}
-                    </>
-                  )}
-                </div>
-              )}
-            </div>
-
-            <button
-              onClick={() => startTransition(() => router.push('/dashboard'))}
-              className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                isActive('/dashboard')
-                  ? 'bg-gray-100 text-gray-900'
-                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-              }`}
-            >
-              <FaList className="w-4 h-4" />
-              <span className="hidden md:inline">My Interviews</span>
-            </button>
-
-            {/* Account Dropdown */}
-            <div className="relative" ref={accountDropdownRef}>
-              <button
-                onClick={() => setIsAccountDropdownOpen(!isAccountDropdownOpen)}
-                className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors"
-              >
-                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center text-white text-xs font-semibold shadow-sm">
-                  {user?.email?.charAt(0).toUpperCase() || 'U'}
-                </div>
-                <span className="hidden lg:inline">{user?.name || 'Account'}</span>
-              </button>
-
-              {/* Account Dropdown Menu */}
-              {isAccountDropdownOpen && (
-                <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-1 animate-slide-down z-50">
-                  <button
-                    onClick={handleAccountSettings}
-                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                  >
-                    <FaCog className="w-4 h-4 text-gray-500" />
-                    <span>Account Settings</span>
-                  </button>
-                  
-                  <button
-                    onClick={handleChangePassword}
-                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                  >
-                    <FaKey className="w-4 h-4 text-gray-500" />
-                    <span>Change Password</span>
-                  </button>
-                  
-                  <div className="border-t border-gray-100 my-1"></div>
-                  
-                  <button
-                    onClick={handleLogoutFromDropdown}
-                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
-                  >
-                    <FaSignOutAlt className="w-4 h-4" />
-                    <span>Log out</span>
-                  </button>
-                </div>
-              )}
-            </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
           </div>
-        </div>
+        ))}
+      </nav>
+
+      {/* Account Section at Bottom */}
+      <div className="relative p-2 border-t border-border" ref={accountDropdownRef}>
+        <button
+          onClick={() => setIsAccountDropdownOpen(!isAccountDropdownOpen)}
+          className="w-full flex items-center gap-3 px-3 py-3 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all duration-150 group relative"
+        >
+          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center text-white text-xs font-semibold shadow-sm flex-shrink-0">
+            {user?.email?.charAt(0).toUpperCase() || 'U'}
+          </div>
+          {isExpanded && (
+            <div className="flex-1 min-w-0">
+              <div className="text-sm font-medium truncate">{user?.name || 'Account'}</div>
+              <div className="text-xs text-muted-foreground truncate">{user?.email}</div>
+            </div>
+          )}
+          
+          {/* Tooltip for collapsed state */}
+          {!isExpanded && (
+            <div className="absolute left-full ml-2 px-3 py-1.5 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
+              Account
+            </div>
+          )}
+        </button>
+
+        {/* Account Dropdown - appears to the right when collapsed, above when expanded */}
+        {isAccountDropdownOpen && (
+          <div 
+            className={`absolute ${
+              isExpanded 
+                ? 'left-0 bottom-full mb-1 w-full' 
+                : 'left-full bottom-0 ml-2 w-56'
+            } bg-card border border-border rounded-lg shadow-lg py-1 z-50 animate-fade-in`}
+          >
+            <button
+              onClick={handleAccountSettings}
+              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-foreground hover:bg-muted/50 transition-colors"
+            >
+              <FaCog className="w-4 h-4 text-muted-foreground" />
+              <span>Account Settings</span>
+            </button>
+            
+            <button
+              onClick={handleChangePassword}
+              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-foreground hover:bg-muted/50 transition-colors"
+            >
+              <FaKey className="w-4 h-4 text-muted-foreground" />
+              <span>Change Password</span>
+            </button>
+            
+            <div className="border-t border-border my-1"></div>
+            
+            <button
+              onClick={handleLogoutFromDropdown}
+              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
+            >
+              <FaSignOutAlt className="w-4 h-4" />
+              <span>Log out</span>
+            </button>
+          </div>
+        )}
       </div>
-    </nav>
+    </aside>
   )
 }

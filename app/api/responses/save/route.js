@@ -1,8 +1,16 @@
 //file: app/api/responses/save/route.js
 import { supabase } from '../../../../lib/authServer.js'
-import { generateOverallAssessmentPersonalized } from '../../../../lib/ai-analysis.js'
+import { 
+    generateOverallAssessmentPersonalized,
+    generatedBasicAssessment,
+    generateCheckExperienceAssessment,
+    generatedMotivationAssessment,
+    generatedSoftSkillsAssessment 
+} from '../../../../lib/ai-analysis.js'
 import { NextResponse } from 'next/server'
 //import { createClient } from '@supabase/supabase-js'
+
+
 
 /*const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -13,7 +21,7 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey)*/
 async function markCandidateComplete(supabase, interviewId, jobTitle, jobCompany, companyCulture, keySkills, candidateId, interviewInstanceId, candidateName) {
 
     // Trigger overall analysis personalized      
-    if (!interviewId || !jobTitle || !jobCompany || !companyCulture || !keySkills || !candidateId || !interviewInstanceId || !candidateName) {
+    if (!interviewId || !jobTitle || !jobCompany || !candidateId || !interviewInstanceId || !candidateName) {
         console.log('Required parameters:')
         console.log('interviewId:', interviewId)
         console.log('jobTitle:', jobTitle)
@@ -36,9 +44,10 @@ async function markCandidateComplete(supabase, interviewId, jobTitle, jobCompany
     console.log('interviewInstanceId:', interviewInstanceId)
     console.log('candidateName:', candidateName)
 
+    // All AI analysis from responses for an instance
     const { data, error: allAIAnalysisError } = await supabase
         .from('responses')
-        .select('ai_analysis')
+        .select('ai_analysis,interview_question_id')
         .eq('interview_candidate_id', interviewInstanceId);
     
     if (allAIAnalysisError) {
@@ -52,12 +61,86 @@ async function markCandidateComplete(supabase, interviewId, jobTitle, jobCompany
         .filter(Boolean);
     console.log('data formatted from responses: ', allAnalyses)
       
-    // Analyze response with AI
+    // Analyze overall responses with AI
     const overallAnalysis = await generateOverallAssessmentPersonalized(allAnalyses, candidateName, jobTitle, jobCompany, companyCulture, keySkills)
 
     if (!overallAnalysis){
         console.log('Error: AI analysis failed')
     }
+
+    // Extract question IDs that have analysis
+    const questionIds = data
+        .filter(item => item.ai_analysis)
+        .map(item => item.interview_question_id);
+
+    // Fetch all questions with their categories
+    const { data: questions, error: allQuestionsError } = await supabase
+        .from('interview_questions')
+        .select('*')
+        .in('id', questionIds);
+
+    if (allQuestionsError) {
+        console.log('❌ Questions not found:', allQuestionsError)
+        throw new Error('Could not fetch questions', allQuestionsError)
+    }
+
+    // Create a map for quick lookup: questionId -> category
+    const questionCategoryMap = Object.fromEntries(
+        questions.map(q => [q.id, q.category])
+    );
+
+    // Group responses by category, maintaining order
+    const responsesByCategory = {
+        basic: { questions: [], answers: [] },
+        experience: { questions: [], answers: [] },
+        resume: { questions: [], answers: [] },
+        motivation: { questions: [], answers: [] },
+        soft_skills: { questions: [], answers: [] }
+    };
+
+    // Iterate through responses in order and group by category
+    data.forEach((response, index) => {
+        if (!response.ai_analysis) return; // Skip responses without analysis
+        
+        const category = questionCategoryMap[response.interview_question_id];
+        
+        if (category && responsesByCategory[category]) {
+            const question = questions.find(q => q.id === response.interview_question_id);
+            responsesByCategory[category].questions.push(question);
+            responsesByCategory[category].answers.push(response.ai_analysis);
+        }
+    });
+
+    // Extract arrays for easy access
+    const basicQuestions = responsesByCategory.basic.questions;
+    const basicAnswers = responsesByCategory.basic.answers;
+
+    const experienceQuestions = responsesByCategory.experience.questions;
+    const experienceAnswers = responsesByCategory.experience.answers;
+
+    const resumeQuestions = responsesByCategory.resume.questions;
+    const resumeAnswers = responsesByCategory.resume.answers;
+
+    const motivationQuestions = responsesByCategory.motivation.questions;
+    const motivationAnswers = responsesByCategory.motivation.answers;
+
+    const softSkillsQuestions = responsesByCategory.soft_skills.questions;
+    const softSkillsAnswers = responsesByCategory.soft_skills.answers;
+
+    console.log('Basic:', { questions: basicQuestions.length, answers: basicAnswers.length });
+    console.log('Experience:', { questions: experienceQuestions.length, answers: experienceAnswers.length });
+    console.log('Resume:', { questions: resumeQuestions.length, answers: resumeAnswers.length });
+    console.log('Motivation:', { questions: motivationQuestions.length, answers: motivationAnswers.length });
+    console.log('Soft Skills:', { questions: softSkillsQuestions.length, answers: softSkillsAnswers.length });
+
+
+    // Analyze each section
+    const sectionAnalyses = await Promise.all([
+        generatedBasicAssessment(basicQuestions, basicAnswers, candidateName, jobTitle, jobCompany),
+        generateCheckExperienceAssessment(experienceQuestions, experienceAnswers, candidateName, jobTitle, jobCompany),
+        generatedMotivationAssessment(motivationQuestions, motivationAnswers, candidateName, jobTitle, jobCompany),
+        generatedSoftSkillsAssessment(softSkillsQuestions, softSkillsAnswers, candidateName, jobTitle, jobCompany)
+    ])
 
     // Mark interview_candidates as completed and store overall analysis 
     const { data: instance, error: instanceError } = await supabase
@@ -65,7 +148,8 @@ async function markCandidateComplete(supabase, interviewId, jobTitle, jobCompany
         .update({ 
             completed_at: new Date().toISOString(),
             status: 'completed',
-            overall_ai_analysis: overallAnalysis
+            overall_ai_analysis: overallAnalysis,
+            section_analysis: sectionAnalyses
             })
         .eq('interview_id', interviewId)
         .eq('candidate_id', candidateId)
@@ -90,13 +174,14 @@ export async function POST(request) {
 
     const { 
         sessionId, 
-        position, 
+        position,
+        category, 
         step,
         interviewInstanceId
      } = await request.json()
-    console.log('📋 Save request params:', { sessionId, position, step, interviewInstanceId })
+    console.log('📋 Save request params:', { sessionId, position, category, step, interviewInstanceId })
 
-    if (!sessionId || position === undefined || !interviewInstanceId) {
+    if (!sessionId || position === undefined ||  category === undefined || !interviewInstanceId) {
         return NextResponse.json({ error: 'Missing required fields' }, {status: 400})
     }
 
@@ -128,12 +213,13 @@ export async function POST(request) {
     }
 
     // Get interview_questions
-    console.log('🔍 Getting interview questions for position ', position, 'and interview_id:', interview.id)
+    console.log('🔍 Getting interview questions for position ', position, ', category ' , category, ' and interview_id:', interview.id)
     const { data: interviewQuestion, error: questionError } = await supabase
         .from('interview_questions')
         .select('id')
         .eq('interview_id', interview.id)
         .eq('position', position)
+        .eq('category', category)
         .single()
 
     if (questionError) {

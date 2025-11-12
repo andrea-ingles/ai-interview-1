@@ -39,8 +39,12 @@ export async function POST(request) {
       short_name: q.short_name,
       question_text: q.question_text,
       position: q.position,
-      tags_questions: q.tags_questions
+      tags_questions: q.tags_questions,
+      category: q.category,
+      more: q.more
     }))
+
+    console.log('Questions to insert: ',questionsToInsert )
 
     // ✅ Step 5: Insert into Supabase
     const { data, error } = await supabase

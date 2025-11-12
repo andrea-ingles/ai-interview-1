@@ -296,7 +296,7 @@ export default function InterviewPage() {
         [currentQuestion]: newResponse
       }))
 
-      await saveResponse(currentQuestion, blob)
+      await saveResponse(interviewQuestions[currentQuestion].position, interviewQuestions[currentQuestion].category, blob)
     }
 
     recorder.start(1000)
@@ -315,7 +315,7 @@ export default function InterviewPage() {
     setTimer(0)
   }
 
-  const saveResponse = async (position, videoBlob) => {
+  const saveResponse = async (position, category, videoBlob) => {
     if (sessionId === 'demo') {
       console.log('Demo mode - skipping save')
       return
@@ -335,6 +335,7 @@ export default function InterviewPage() {
         body: JSON.stringify({
           sessionId,
           position,
+          category,
           step: isLastQuestion ? 'complete' : 'interview',
           interviewInstanceId
         }),
@@ -351,6 +352,7 @@ export default function InterviewPage() {
         formData.append('video', videoBlob)
         formData.append('sessionId', sessionId)
         formData.append('questionIndex', position)
+        formData.append('questionCategory', category)
         formData.append('responseId', responseId)
         formData.append('candidateId', candidateId)
 

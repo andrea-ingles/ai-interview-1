@@ -67,7 +67,14 @@ export async function POST(request) {
       console.log('Starting AI analysis...')
       const interview = response.interview_questions.interviews
       const question = response.interview_questions.question_text
+      const category = response.interview_questions.category
       const analysisPrompts = interview.analysis_prompts
+
+      // Declare 'more' outside the if block
+      const more = (category === 'basic' || category === 'experience') 
+        ? response.interview_questions.more 
+        : undefined
+
 
       console.log('Now, to analyze question: ', question, '.')
       console.log('Transcription is: ', rawTranscription)
@@ -80,7 +87,8 @@ export async function POST(request) {
           responseId, 
           rawTranscription,
           formattedSegments, 
-          question, 
+          question,
+          ...(more !== undefined ? { more } : {}),
           analysisPrompts 
         })
       })

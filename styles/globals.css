@@ -1,50 +1,76 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
 @layer base {
     :root {
-        --background: 0 0% 100%;
-        --foreground: 240 10% 3.9%;
+        /* Light mode - Clean, minimal palette inspired by Prescrin logo */
+        --background: 0 0% 98%;
+        --foreground: 210 15% 20%;
         --card: 0 0% 100%;
-        --card-foreground: 240 10% 3.9%;
+        --card-foreground: 210 15% 20%;
         --popover: 0 0% 100%;
-        --popover-foreground: 240 10% 3.9%;
-        --primary: 142 31% 53%;
-        --primary-foreground: 0 0% 98%;
-        --secondary: 210 40% 98%;
-        --secondary-foreground: 222.2 84% 4.9%;
-        --muted: 215 16% 85%;
-        --muted-foreground: 215.4 16.3% 46.9%;
-        --accent: 210 40% 98%;
-        --accent-foreground: 222.2 84% 4.9%;
-        --destructive: 0 84.2% 60.2%;
-        --destructive-foreground: 0 0% 98%;
-        --border: 214.3 31.8% 91.4%;
-        --input: 214.3 31.8% 91.4%;
-        --ring: 142 31% 53%;
+        --popover-foreground: 210 15% 20%;
+        
+        /* Primary: Deep Teal from logo */
+        --primary: 185 45% 35%;
+        --primary-foreground: 0 0% 100%;
+        
+        /* Secondary: Bright Orange from logo */
+        --secondary: 22 95% 55%;
+        --secondary-foreground: 0 0% 100%;
+        
+        /* Muted: Light Gray from logo */
+        --muted: 210 10% 94%;
+        --muted-foreground: 210 10% 45%;
+        
+        --accent: 210 10% 96%;
+        --accent-foreground: 210 15% 20%;
+        
+        --destructive: 0 72% 51%;
+        --destructive-foreground: 0 0% 100%;
+        
+        --border: 210 15% 90%;
+        --input: 210 15% 90%;
+        --ring: 185 45% 35%;
         --radius: 0.75rem;
+        
+        /* Custom Prescrin colors */
+        --teal-deep: 185 45% 35%;
+        --teal-medium: 185 35% 45%;
+        --teal-light: 185 25% 85%;
+        --orange-bright: 22 95% 55%;
+        --orange-light: 22 85% 75%;
+        --gray-light: 210 10% 94%;
     }
 
     .dark {
-        --background: 222.2 84% 4.9%;
-        --foreground: 210 40% 98%;
-        --card: 222.2 84% 4.9%;
-        --card-foreground: 210 40% 98%;
-        --popover: 222.2 84% 4.9%;
-        --popover-foreground: 210 40% 98%;
-        --primary: 142 31% 53%;
-        --primary-foreground: 222.2 84% 4.9%;
-        --secondary: 217.2 32.6% 17.5%;
-        --secondary-foreground: 210 40% 98%;
-        --muted: 217.2 20% 22%;
-        --muted-foreground: 215 20.2% 65.1%;
-        --accent: 217.2 32.6% 17.5%;
-        --accent-foreground: 210 40% 98%;
-        --destructive: 0 62.8% 30.6%;
-        --destructive-foreground: 210 40% 98%;
-        --border: 217.2 32.6% 17.5%;
-        --input: 217.2 32.6% 17.5%;
-        --ring: 142 31% 53%;
+        /* Dark mode - maintaining the same aesthetic */
+        --background: 210 20% 12%;
+        --foreground: 210 10% 95%;
+        --card: 210 18% 15%;
+        --card-foreground: 210 10% 95%;
+        --popover: 210 18% 15%;
+        --popover-foreground: 210 10% 95%;
+        
+        --primary: 185 50% 45%;
+        --primary-foreground: 0 0% 100%;
+        
+        --secondary: 22 95% 60%;
+        --secondary-foreground: 0 0% 100%;
+        
+        --muted: 210 15% 20%;
+        --muted-foreground: 210 10% 65%;
+        
+        --accent: 210 15% 22%;
+        --accent-foreground: 210 10% 95%;
+        
+        --destructive: 0 62% 50%;
+        --destructive-foreground: 0 0% 100%;
+        
+        --border: 210 15% 25%;
+        --input: 210 15% 25%;
+        --ring: 185 50% 45%;
     }
 }
 
@@ -52,72 +78,200 @@
     * {
         @apply border-border;
     }
+    
     body {
         @apply bg-background text-foreground;
         font-feature-settings: "rlig" 1, "calt" 1;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', sans-serif;
     }
 }
 
 @layer components {
+    /* Clean gradient backgrounds */
     .gradient-bg {
-        background: linear-gradient(135deg, #719e74 0%, #5a7e5d 50%, #4a6b4f 100%);
+        background: linear-gradient(135deg, hsl(var(--background)) 0%, hsl(var(--muted)) 100%);
     }
     
-    .gradient-accent {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    .gradient-teal {
+        background: linear-gradient(135deg, hsl(185 45% 35%) 0%, hsl(185 35% 45%) 100%);
     }
     
+    /* Minimal glass effect - very subtle */
     .glass-effect {
-        @apply backdrop-blur-sm bg-white/80 border border-white/20;
+        @apply backdrop-blur-sm bg-card/95 border border-border/50;
     }
     
-    .glass-effect-dark {
-        @apply backdrop-blur-sm bg-black/20 border border-white/10;
+    /* Main content card - Whispr Flow style white page */
+    .content-page {
+        @apply bg-card rounded-2xl shadow-sm border border-border/50 overflow-hidden;
     }
     
+    /* Interview card - minimal elevation */
     .interview-card {
-        @apply bg-card text-card-foreground rounded-lg border shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02];
+        @apply bg-card text-card-foreground rounded-xl border border-border/50 
+               transition-all duration-200 ease-out;
     }
     
+    .interview-card:hover {
+        @apply shadow-md border-border;
+    }
+    
+    /* Conversation-style question flow */
+    .conversation-item {
+        @apply bg-card rounded-lg border border-border/30 p-4 mb-3
+               transition-all duration-200 ease-out;
+    }
+    
+    .conversation-item:hover {
+        @apply border-primary/30 shadow-sm;
+    }
+    
+    .conversation-item.active {
+        @apply border-primary bg-primary/5;
+    }
+    
+    /* Button styles - minimal and clean */
     .button-primary {
-        @apply bg-primary text-primary-foreground hover:bg-primary/90 focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none;
+        @apply bg-primary text-primary-foreground hover:bg-primary/90 
+               rounded-lg px-4 py-2 font-medium
+               transition-all duration-150 ease-out
+               focus:ring-2 focus:ring-primary/50 focus:ring-offset-2
+               disabled:opacity-50 disabled:pointer-events-none;
     }
     
     .button-secondary {
-        @apply bg-secondary text-secondary-foreground hover:bg-secondary/80 focus:ring-2 focus:ring-secondary focus:ring-offset-2;
+        @apply bg-secondary text-secondary-foreground hover:bg-secondary/90 
+               rounded-lg px-4 py-2 font-medium
+               transition-all duration-150 ease-out
+               focus:ring-2 focus:ring-secondary/50 focus:ring-offset-2;
     }
     
+    .button-ghost {
+        @apply bg-transparent hover:bg-muted text-foreground
+               rounded-lg px-4 py-2 font-medium
+               transition-all duration-150 ease-out;
+    }
+    
+    /* Input styles - clean and minimal */
     .input-enhanced {
-        @apply bg-background border-input border rounded-md px-3 py-2 text-sm ring-offset-background 
-            focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:border-transparent
-            disabled:cursor-not-allowed disabled:opacity-50;
+        @apply bg-background border-input border rounded-lg px-3 py-2 text-sm
+               transition-all duration-150 ease-out
+               focus:ring-2 focus:ring-primary/50 focus:border-primary
+               disabled:cursor-not-allowed disabled:opacity-50;
     }
     
-    .recording-indicator {
-        @apply animate-pulse-recording;
+    /* Navigation styles */
+    .nav-item {
+        @apply flex items-center gap-3 px-4 py-3 rounded-lg
+               text-muted-foreground hover:text-foreground hover:bg-muted/50
+               transition-all duration-150 ease-out cursor-pointer;
     }
     
-    .loading-spinner {
-        @apply animate-spin rounded-full border-2 border-gray-300 border-t-primary;
+    .nav-item.active {
+        @apply bg-primary/10 text-primary font-medium;
     }
     
+    /* Status badges - minimal style */
     .status-badge {
-        @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+        @apply inline-flex items-center px-3 py-1 rounded-full text-xs font-medium
+               border transition-all duration-150;
     }
     
     .status-badge-success {
-        @apply status-badge bg-green-100 text-green-800;
+        @apply bg-green-50 text-green-700 border-green-200;
     }
     
     .status-badge-warning {
-        @apply status-badge bg-yellow-100 text-yellow-800;
+        @apply bg-amber-50 text-amber-700 border-amber-200;
     }
     
     .status-badge-error {
-        @apply status-badge bg-red-100 text-red-800;
+        @apply bg-red-50 text-red-700 border-red-200;
     }
     
     .status-badge-info {
-        @apply status-badge bg-blue-100 text-blue-800;
+        @apply bg-blue-50 text-blue-700 border-blue-200;
     }
+    
+    .status-badge-teal {
+        @apply bg-teal-50 text-teal-700 border-teal-200;
+    }
+    
+    /* Timeline for conversation flow */
+    .timeline-item {
+        @apply relative pl-8 pb-6;
+    }
+    
+    .timeline-item::before {
+        @apply absolute left-0 top-2 w-3 h-3 rounded-full bg-primary border-2 border-background;
+        content: '';
+    }
+    
+    .timeline-item::after {
+        @apply absolute left-[5px] top-5 bottom-0 w-0.5 bg-border;
+        content: '';
+    }
+    
+    .timeline-item:last-child::after {
+        @apply hidden;
+    }
+    
+    /* Icon containers */
+    .icon-container {
+        @apply w-10 h-10 rounded-lg flex items-center justify-center
+               bg-muted text-muted-foreground
+               transition-all duration-150;
+    }
+    
+    .icon-container.primary {
+        @apply bg-primary/10 text-primary;
+    }
+    
+    .icon-container.secondary {
+        @apply bg-secondary/10 text-secondary;
+    }
+    
+    /* Scrollbar styling */
+    .custom-scrollbar::-webkit-scrollbar {
+        @apply w-2;
+    }
+    
+    .custom-scrollbar::-webkit-scrollbar-track {
+        @apply bg-transparent;
+    }
+    
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+        @apply bg-border rounded-full hover:bg-border/80;
+    }
+}
+
+/* Animations */
+@keyframes fade-in-up {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slide-in-left {
+    from {
+        opacity: 0;
+        transform: translateX(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.animate-fade-in-up {
+    animation: fade-in-up 0.3s ease-out;
+}
+
+.animate-slide-in-left {
+    animation: slide-in-left 0.3s ease-out;
 }
